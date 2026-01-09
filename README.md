@@ -1,5 +1,11 @@
 # Foldseek Pocket Miner
 
+<p align="center">
+  <img src="puppy-dog-eyes-sad.gif" width="150">
+  <br>
+  <em>Please ⭐ star this repo if it helps you!</em>
+</p>
+
 A Python tool that leverages Foldseek to discover similar protein structures, extract binding pockets with their ligands, and generate comprehensive PyMOL sessions for structural analysis.
 
 ## Features
@@ -115,10 +121,6 @@ The tool generates:
 - Requests
 - tqdm
 
-### Optional (Forli Lab tools)
-- Meeko - for ligand processing
-- Ringtail - for results analysis
-
 ## License
 
 MIT License
@@ -126,11 +128,37 @@ MIT License
 ## Citation
 
 If you use this tool, please cite:
-- Foldseek: van Kempen et al. (2023) Nature Biotechnology
-- This tool: [Your citation here]
+
+**Foldseek:**
+```bibtex
+@article{van2024fast,
+  title={Fast and accurate protein structure search with Foldseek},
+  author={van Kempen, Michel and Kim, Stephanie S and Tumescheit, Charlotte and Mirdita, Milot and Lee, Jeongjae and Gilchrist, Cameron LM and S{\"o}ding, Johannes and Steinegger, Martin},
+  journal={Nature Biotechnology},
+  volume={42},
+  number={2},
+  pages={243--246},
+  year={2024},
+  publisher={Nature Publishing Group US New York}
+}
+```
+
+**Foldseek Pocket Miner:**
+```bibtex
+@software{jian2024foldseek_pocket_miner,
+  author = {Jian, Jinglin},
+  title = {Foldseek Pocket Miner: A Tool for Protein Binding Pocket Discovery},
+  year = {2024},
+  publisher = {GitHub},
+  url = {https://github.com/JianJinglin/foldseek-pocket-miner}
+}
+```
 
 ## Acknowledgments
 
-- Forli Lab at Scripps Research for molecular modeling tools
 - RCSB PDB for structure data
 - Foldseek developers
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=JianJinglin/foldseek-pocket-miner&type=Date)](https://star-history.com/#JianJinglin/foldseek-pocket-miner&Date)

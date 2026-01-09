@@ -1,16 +1,22 @@
 """
-Foldseek search module - Interface to Foldseek command line tool for structure similarity search.
+Foldseek search module - Interface to Foldseek web API for structure similarity search.
 """
 
 import subprocess
 import tempfile
 import os
 import logging
+import time
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 
+import requests
+import urllib3
 import pandas as pd
+
+# Suppress SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +40,7 @@ class FoldseekHit:
     @classmethod
     def from_row(cls, row: pd.Series) -> "FoldseekHit":
         """Create a FoldseekHit from a DataFrame row."""
-        # Parse target to extract PDB ID and chain
         target = row['target']
-        # Target format is usually like "1abc_A" or "pdb1abc_A"
         if '_' in target:
             parts = target.split('_')
             pdb_id = parts[0].replace('pdb', '').upper()
@@ -60,11 +64,48 @@ class FoldseekHit:
             target_end=int(row.get('tend', 0)),
         )
 
+    @classmethod
+    def from_web_result(cls, result: Dict, query_name: str = "query") -> "FoldseekHit":
+        """Create a FoldseekHit from Foldseek web API result."""
+        target = result.get('target', '')
+
+        # Parse target ID - format varies: "pdb100_1abc_A" or "1abc_A"
+        parts = target.split('_')
+        if len(parts) >= 2:
+            # Skip database prefix if present
+            if parts[0] in ['pdb100', 'afdb', 'afdb50']:
+                pdb_id = parts[1].upper()
+                chain = parts[2] if len(parts) > 2 else 'A'
+            else:
+                pdb_id = parts[0].upper()
+                chain = parts[1] if len(parts) > 1 else 'A'
+        else:
+            pdb_id = target[:4].upper()
+            chain = 'A'
+
+        return cls(
+            query=query_name,
+            target=target,
+            pdb_id=pdb_id,
+            chain=chain,
+            evalue=float(result.get('evalue', result.get('eval', 0))),
+            score=float(result.get('score', result.get('bits', 0))),
+            seq_identity=float(result.get('seqId', result.get('pident', 0))) / 100.0,
+            alignment_length=int(result.get('alnLength', result.get('alnlen', 0))),
+            query_start=int(result.get('qStartPos', result.get('qstart', 0))),
+            query_end=int(result.get('qEndPos', result.get('qend', 0))),
+            target_start=int(result.get('dbStartPos', result.get('tstart', 0))),
+            target_end=int(result.get('dbEndPos', result.get('tend', 0))),
+        )
+
 
 class FoldseekSearcher:
     """Interface to Foldseek for structure similarity search."""
 
-    # Foldseek output format columns
+    # Foldseek Web API endpoints
+    WEB_API_BASE = "https://search.foldseek.com/api"
+
+    # Foldseek output format columns for local search
     OUTPUT_COLUMNS = [
         'query', 'target', 'fident', 'alnlen', 'mismatch', 'gapopen',
         'qstart', 'qend', 'tstart', 'tend', 'evalue', 'score'
@@ -74,7 +115,8 @@ class FoldseekSearcher:
         self,
         foldseek_path: str = "foldseek",
         database: str = "pdb100",
-        temp_dir: Optional[str] = None
+        temp_dir: Optional[str] = None,
+        use_web_api: bool = True
     ):
         """
         Initialize the Foldseek searcher.
@@ -83,28 +125,12 @@ class FoldseekSearcher:
             foldseek_path: Path to foldseek executable
             database: Database to search (pdb100, afdb, etc.)
             temp_dir: Temporary directory for intermediate files
+            use_web_api: Use web API instead of local foldseek (recommended)
         """
         self.foldseek_path = foldseek_path
         self.database = database
         self.temp_dir = temp_dir or tempfile.gettempdir()
-
-        # Verify foldseek is available
-        self._verify_foldseek()
-
-    def _verify_foldseek(self) -> None:
-        """Verify that foldseek is installed and accessible."""
-        try:
-            result = subprocess.run(
-                [self.foldseek_path, "--version"],
-                capture_output=True,
-                text=True
-            )
-            logger.info(f"Foldseek version: {result.stdout.strip()}")
-        except FileNotFoundError:
-            raise RuntimeError(
-                f"Foldseek not found at '{self.foldseek_path}'. "
-                "Please install foldseek or provide the correct path."
-            )
+        self.use_web_api = use_web_api
 
     def search(
         self,
@@ -133,20 +159,46 @@ class FoldseekSearcher:
         if not structure_path.exists():
             raise FileNotFoundError(f"Structure file not found: {structure_path}")
 
-        # Create temporary output file
+        # Use web API (recommended - no local database needed)
+        if self.use_web_api:
+            return self.search_web(
+                structure_path=str(structure_path),
+                max_hits=max_hits,
+                database=self.database,
+                evalue=evalue
+            )
+
+        # Local search (requires database download)
+        return self._search_local(
+            structure_path=str(structure_path),
+            max_hits=max_hits,
+            evalue=evalue,
+            min_seq_id=min_seq_id,
+            coverage=coverage,
+            threads=threads
+        )
+
+    def _search_local(
+        self,
+        structure_path: str,
+        max_hits: int,
+        evalue: float,
+        min_seq_id: float,
+        coverage: float,
+        threads: int
+    ) -> List[FoldseekHit]:
+        """Run local Foldseek search."""
         with tempfile.NamedTemporaryFile(
             mode='w', suffix='.tsv', delete=False, dir=self.temp_dir
         ) as tmp_out:
             output_path = tmp_out.name
 
         try:
-            # Build foldseek command
-            # Using easy-search which handles database download automatically
             cmd = [
                 self.foldseek_path,
                 "easy-search",
-                str(structure_path),
-                self.database,  # Will use remote database or local if available
+                structure_path,
+                self.database,
                 output_path,
                 os.path.join(self.temp_dir, "foldseek_tmp"),
                 "--max-seqs", str(max_hits),
@@ -159,24 +211,17 @@ class FoldseekSearcher:
 
             logger.info(f"Running Foldseek: {' '.join(cmd)}")
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode != 0:
                 logger.error(f"Foldseek stderr: {result.stderr}")
                 raise RuntimeError(f"Foldseek search failed: {result.stderr}")
 
-            # Parse results
             hits = self._parse_results(output_path)
             logger.info(f"Found {len(hits)} hits")
-
             return hits
 
         finally:
-            # Cleanup
             if os.path.exists(output_path):
                 os.remove(output_path)
 
@@ -207,65 +252,151 @@ class FoldseekSearcher:
         self,
         structure_path: str,
         max_hits: int = 100,
-        database: str = "pdb100"
+        database: str = "pdb100",
+        evalue: float = 1e-3,
+        timeout: int = 300
     ) -> List[FoldseekHit]:
         """
-        Search using Foldseek web server API (alternative when local database not available).
+        Search using Foldseek web server API.
 
         Args:
             structure_path: Path to the query structure
             max_hits: Maximum number of hits
-            database: Database to search
+            database: Database to search (pdb100, afdb50, afdb-swissprot, etc.)
+            evalue: E-value threshold
+            timeout: Maximum time to wait for results (seconds)
 
         Returns:
             List of FoldseekHit objects
         """
-        import requests
+        logger.info(f"Searching Foldseek web API with database: {database}")
 
         # Read structure file
         with open(structure_path, 'r') as f:
             structure_content = f.read()
 
-        # Submit to Foldseek web server
-        url = "https://search.foldseek.com/api/ticket"
+        # Map database names to Foldseek API database IDs
+        db_mapping = {
+            'pdb100': 'pdb100',
+            'pdb': 'pdb100',
+            'afdb': 'afdb50',
+            'afdb50': 'afdb50',
+            'afdb-swissprot': 'afdb-swissprot',
+            'afdb-proteome': 'afdb-proteome',
+        }
+        api_database = db_mapping.get(database.lower(), 'pdb100')
+
+        # Submit job to Foldseek web server
+        submit_url = f"{self.WEB_API_BASE}/ticket"
 
         files = {
-            'q': ('query.pdb', structure_content),
+            'q': ('query.pdb', structure_content, 'application/octet-stream'),
         }
         data = {
-            'database[]': database,
-            'mode': '3diaa',
+            'database[]': api_database,
+            'mode': '3diaa',  # 3Di+AA mode for better sensitivity
         }
 
-        response = requests.post(url, files=files, data=data)
-        response.raise_for_status()
+        try:
+            response = requests.post(
+                submit_url,
+                files=files,
+                data=data,
+                timeout=60,
+                verify=False
+            )
+            response.raise_for_status()
+            ticket = response.json()
+            ticket_id = ticket['id']
+            logger.info(f"Foldseek job submitted, ticket ID: {ticket_id}")
 
-        ticket = response.json()
-        ticket_id = ticket['id']
+        except Exception as e:
+            logger.error(f"Failed to submit Foldseek job: {e}")
+            raise RuntimeError(f"Failed to submit Foldseek search: {e}")
 
         # Poll for results
-        import time
-        result_url = f"https://search.foldseek.com/api/ticket/{ticket_id}"
+        status_url = f"{self.WEB_API_BASE}/ticket/{ticket_id}"
+        start_time = time.time()
 
         while True:
-            response = requests.get(result_url)
-            result = response.json()
+            if time.time() - start_time > timeout:
+                raise RuntimeError(f"Foldseek search timed out after {timeout}s")
 
-            if result['status'] == 'COMPLETE':
-                break
-            elif result['status'] == 'ERROR':
-                raise RuntimeError("Foldseek web search failed")
+            try:
+                response = requests.get(status_url, timeout=30, verify=False)
+                result = response.json()
+                status = result.get('status', '')
 
-            time.sleep(2)
+                if status == 'COMPLETE':
+                    logger.info("Foldseek search completed")
+                    break
+                elif status == 'ERROR':
+                    error_msg = result.get('error', 'Unknown error')
+                    raise RuntimeError(f"Foldseek search failed: {error_msg}")
+                elif status in ['PENDING', 'RUNNING']:
+                    logger.debug(f"Foldseek status: {status}")
+                    time.sleep(2)
+                else:
+                    logger.debug(f"Foldseek status: {status}")
+                    time.sleep(2)
+
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Error polling status: {e}")
+                time.sleep(2)
+
+        # Fetch and parse results
+        try:
+            result_url = f"{self.WEB_API_BASE}/result/{ticket_id}/0"
+            response = requests.get(result_url, timeout=60, verify=False)
+            response.raise_for_status()
+            results_data = response.json()
+
+        except Exception as e:
+            logger.error(f"Failed to fetch results: {e}")
+            raise RuntimeError(f"Failed to fetch Foldseek results: {e}")
 
         # Parse results
         hits = []
-        for entry in result.get('results', [])[:max_hits]:
-            # Parse web results into FoldseekHit format
-            # This may need adjustment based on actual API response format
-            pass
+        alignments = results_data.get('alignments', [])
 
-        return hits
+        if not alignments:
+            # Try alternative result format
+            alignments = results_data.get('results', [])
+
+        for alignment in alignments:
+            # Each alignment can have multiple hits
+            if isinstance(alignment, list):
+                for hit_data in alignment[:max_hits]:
+                    try:
+                        hit = FoldseekHit.from_web_result(hit_data)
+                        if hit.evalue <= evalue:
+                            hits.append(hit)
+                    except Exception as e:
+                        logger.debug(f"Failed to parse hit: {e}")
+                        continue
+            elif isinstance(alignment, dict):
+                try:
+                    hit = FoldseekHit.from_web_result(alignment)
+                    if hit.evalue <= evalue:
+                        hits.append(hit)
+                except Exception as e:
+                    logger.debug(f"Failed to parse hit: {e}")
+                    continue
+
+        # Limit results
+        hits = hits[:max_hits]
+
+        # Remove duplicates by PDB ID
+        seen = set()
+        unique_hits = []
+        for hit in hits:
+            key = f"{hit.pdb_id}_{hit.chain}"
+            if key not in seen:
+                seen.add(key)
+                unique_hits.append(hit)
+
+        logger.info(f"Found {len(unique_hits)} unique hits from Foldseek web API")
+        return unique_hits
 
 
 def download_pdb100_database(output_dir: str, foldseek_path: str = "foldseek") -> str:

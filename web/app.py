@@ -80,8 +80,8 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
         jobs[job_id]["progress"] = 15
 
         searcher = FoldseekSearcher(
-            foldseek_path=os.path.expanduser("~/bin/foldseek"),
-            database="pdb100"
+            database="pdb100",
+            use_web_api=True  # Use Foldseek web API (no local database needed)
         )
 
         hits = searcher.search(

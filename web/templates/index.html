@@ -55,6 +55,58 @@
             background: linear-gradient(to right, #3b82f6, #ffffff, #ef4444);
             border-radius: 4px;
         }
+
+        /* Collapsible category styles */
+        .category-header {
+            cursor: pointer;
+            user-select: none;
+        }
+        .category-header:hover {
+            background-color: #f3f4f6;
+        }
+        .category-chevron {
+            transition: transform 0.2s ease;
+        }
+        .category-chevron.expanded {
+            transform: rotate(90deg);
+        }
+        .category-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .category-content.expanded {
+            max-height: 500px;
+        }
+
+        /* Species filter dropdown */
+        .species-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .species-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 250px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            z-index: 100;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .species-dropdown-content.show {
+            display: block;
+        }
+        .species-checkbox-item {
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .species-checkbox-item:hover {
+            background-color: #f3f4f6;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -219,22 +271,65 @@
                     <div id="viewer" class="viewer-container"></div>
                 </div>
 
-                <!-- Ligand Pharmacophore List -->
+                <!-- Ligand Pharmacophore List with Categories -->
                 <div class="bg-white rounded-lg shadow">
                     <div class="p-4 border-b">
                         <h3 class="font-semibold">Ligand Pharmacophore</h3>
-                        <p class="text-sm text-gray-500">Aligned ligands from similar structures</p>
+                        <p class="text-sm text-gray-500">Ligands grouped by chemical category (Kamaji-style)</p>
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="expandAllCategories()" class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">Expand All</button>
+                            <button onclick="collapseAllCategories()" class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">Collapse All</button>
+                        </div>
                     </div>
-                    <div id="ligand-list" class="max-h-96 overflow-y-auto p-2">
-                        <!-- Ligands will be populated here -->
+                    <div id="ligand-categories" class="max-h-96 overflow-y-auto p-2">
+                        <!-- Ligand categories will be populated here -->
                     </div>
                 </div>
             </div>
 
-            <!-- Foldseek Hits Table -->
+            <!-- Foldseek Hits Table with Species -->
             <div class="mt-6 bg-white rounded-lg shadow">
                 <div class="p-4 border-b">
-                    <h3 class="font-semibold">Foldseek Search Results</h3>
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-semibold">Foldseek Search Results</h3>
+                        <!-- Species Filter -->
+                        <div class="flex gap-2">
+                            <div class="species-dropdown">
+                                <button onclick="toggleSpeciesFilter()" class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                                    </svg>
+                                    Filter by Species
+                                </button>
+                                <div id="species-filter-dropdown" class="species-dropdown-content">
+                                    <div class="p-2 border-b">
+                                        <input type="text" id="species-search" placeholder="Search species..."
+                                               class="w-full px-2 py-1 text-sm border rounded"
+                                               oninput="filterSpeciesList()">
+                                    </div>
+                                    <div id="species-checkboxes" class="p-2">
+                                        <!-- Species checkboxes will be populated here -->
+                                    </div>
+                                    <div class="p-2 border-t flex gap-2">
+                                        <button onclick="applySpeciesFilter()" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Apply</button>
+                                        <button onclick="clearSpeciesFilter()" class="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300">Clear</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="excludeHuman()" id="btn-exclude-human" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200">
+                                Exclude Human
+                            </button>
+                            <button onclick="recalculateConservation()" id="btn-recalc" class="hidden px-3 py-1 text-sm bg-orange-500 text-white rounded hover:bg-orange-600 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Recalculate Conservation
+                            </button>
+                        </div>
+                    </div>
+                    <div id="active-filters" class="mt-2 flex flex-wrap gap-1">
+                        <!-- Active species filters shown here -->
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full">
@@ -242,6 +337,7 @@
                             <tr>
                                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">PDB ID</th>
                                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Chain</th>
+                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Species</th>
                                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">E-value</th>
                                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Score</th>
                                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Seq ID</th>
@@ -284,6 +380,33 @@
         let showConservation = true;
         let showLigands = true;
         let showSurface = false;
+
+        // New state for ligand categories and species filtering
+        let ligandClusters = {};
+        let ligandPdbs = [];
+        let speciesGroups = {};
+        let selectedSpecies = new Set();
+        let excludedSpecies = new Set();
+        let allHits = [];
+
+        // Category colors
+        const categoryColors = {
+            'small_molecule': '#FF6B6B',
+            'nucleotide': '#4ECDC4',
+            'saccharide': '#45B7D1',
+            'lipid': '#96CEB4',
+            'peptide': '#FFEAA7',
+            'metal_complex': '#DDA0DD',
+        };
+
+        const categoryNames = {
+            'small_molecule': 'Small Molecules',
+            'nucleotide': 'Nucleotides & Nucleic Acids',
+            'saccharide': 'Saccharides',
+            'lipid': 'Lipids',
+            'peptide': 'Peptides',
+            'metal_complex': 'Metal Complexes',
+        };
 
         // Initialize 3Dmol viewer
         function initViewer() {
@@ -422,6 +545,12 @@
             // Store conservation data
             conservationData = data.conservation || [];
 
+            // Store new data
+            ligandClusters = data.ligand_clusters || {};
+            ligandPdbs = data.ligand_pdbs || [];
+            speciesGroups = data.species_groups || {};
+            allHits = data.hits || [];
+
             // Update statistics
             document.getElementById('stat-hits').textContent = data.hits.length;
             document.getElementById('stat-downloaded').textContent = data.downloaded_count;
@@ -432,49 +561,14 @@
             const highlyConserved = conservationData.filter(r => r.score > 0.8).length;
             document.getElementById('stat-conserved').textContent = highlyConserved;
 
-            // Populate hits table
-            const hitsTable = document.getElementById('hits-table');
-            hitsTable.innerHTML = '';
+            // Populate hits table with species column
+            populateHitsTable(data.hits);
 
-            data.hits.slice(0, 50).forEach(hit => {
-                const row = document.createElement('tr');
-                row.className = 'border-t hover:bg-gray-50';
-                row.innerHTML = `
-                    <td class="px-4 py-2">
-                        <a href="https://www.rcsb.org/structure/${hit.pdb_id}"
-                           target="_blank" class="text-blue-600 hover:underline">${hit.pdb_id}</a>
-                    </td>
-                    <td class="px-4 py-2">${hit.chain}</td>
-                    <td class="px-4 py-2">${hit.evalue.toExponential(2)}</td>
-                    <td class="px-4 py-2">${hit.score.toFixed(1)}</td>
-                    <td class="px-4 py-2">${(hit.seq_identity * 100).toFixed(1)}%</td>
-                `;
-                hitsTable.appendChild(row);
-            });
+            // Populate species filter checkboxes
+            populateSpeciesFilter(speciesGroups);
 
-            // Populate ligand list
-            const ligandList = document.getElementById('ligand-list');
-            ligandList.innerHTML = '';
-
-            const ligandColors = [
-                '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-                '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
-            ];
-
-            data.ligands.forEach((lig, idx) => {
-                const color = ligandColors[idx % ligandColors.length];
-                const item = document.createElement('div');
-                item.className = 'ligand-item p-2 border rounded mb-2 cursor-pointer flex items-center';
-                item.innerHTML = `
-                    <div class="w-4 h-4 rounded mr-2" style="background-color: ${color}"></div>
-                    <div class="flex-1">
-                        <div class="font-medium">${lig.name}</div>
-                        <div class="text-sm text-gray-500">From: ${lig.source}</div>
-                    </div>
-                `;
-                item.onclick = () => highlightLigand(idx);
-                ligandList.appendChild(item);
-            });
+            // Populate ligand categories (Kamaji-style)
+            populateLigandCategories(ligandClusters, data.ligands);
 
             // Display conservation details
             const consDetails = document.getElementById('conservation-details');
@@ -712,6 +806,362 @@
             document.getElementById('btn-text').textContent = 'Search & Analyze';
             document.getElementById('btn-spinner').classList.add('hidden');
         }
+
+        // ========== NEW FUNCTIONS FOR LIGAND CATEGORIES AND SPECIES FILTERING ==========
+
+        // Populate hits table with species column
+        function populateHitsTable(hits) {
+            const hitsTable = document.getElementById('hits-table');
+            hitsTable.innerHTML = '';
+
+            hits.slice(0, 50).forEach(hit => {
+                const row = document.createElement('tr');
+                row.className = 'border-t hover:bg-gray-50';
+                const speciesDisplay = hit.species || 'Unknown';
+                const speciesShort = speciesDisplay.length > 25 ?
+                    speciesDisplay.substring(0, 25) + '...' : speciesDisplay;
+
+                row.innerHTML = `
+                    <td class="px-4 py-2">
+                        <a href="https://www.rcsb.org/structure/${hit.pdb_id}"
+                           target="_blank" class="text-blue-600 hover:underline">${hit.pdb_id}</a>
+                    </td>
+                    <td class="px-4 py-2">${hit.chain}</td>
+                    <td class="px-4 py-2">
+                        <span class="text-sm" title="${speciesDisplay}">${speciesShort}</span>
+                    </td>
+                    <td class="px-4 py-2">${hit.evalue.toExponential(2)}</td>
+                    <td class="px-4 py-2">${hit.score.toFixed(1)}</td>
+                    <td class="px-4 py-2">${(hit.seq_identity * 100).toFixed(1)}%</td>
+                `;
+                hitsTable.appendChild(row);
+            });
+        }
+
+        // Populate species filter dropdown
+        function populateSpeciesFilter(speciesGroups) {
+            const container = document.getElementById('species-checkboxes');
+            container.innerHTML = '';
+
+            // Sort by count (descending)
+            const sortedSpecies = Object.entries(speciesGroups)
+                .sort((a, b) => b[1] - a[1]);
+
+            sortedSpecies.forEach(([species, count]) => {
+                const item = document.createElement('div');
+                item.className = 'species-checkbox-item';
+                item.setAttribute('data-species', species.toLowerCase());
+                item.innerHTML = `
+                    <input type="checkbox" id="species-${species.replace(/\s+/g, '_')}"
+                           value="${species}" class="species-checkbox">
+                    <label for="species-${species.replace(/\s+/g, '_')}" class="text-sm flex-1 cursor-pointer">
+                        ${species} <span class="text-gray-400">(${count})</span>
+                    </label>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Toggle species filter dropdown
+        function toggleSpeciesFilter() {
+            const dropdown = document.getElementById('species-filter-dropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Filter species list in dropdown
+        function filterSpeciesList() {
+            const searchText = document.getElementById('species-search').value.toLowerCase();
+            const items = document.querySelectorAll('.species-checkbox-item');
+
+            items.forEach(item => {
+                const species = item.getAttribute('data-species');
+                item.style.display = species.includes(searchText) ? 'flex' : 'none';
+            });
+        }
+
+        // Apply species filter
+        function applySpeciesFilter() {
+            const checkboxes = document.querySelectorAll('.species-checkbox:checked');
+            selectedSpecies = new Set(Array.from(checkboxes).map(cb => cb.value));
+
+            // Update active filters display
+            updateActiveFilters();
+
+            // Show recalculate button if filters are active
+            document.getElementById('btn-recalc').classList.toggle('hidden', selectedSpecies.size === 0);
+
+            // Close dropdown
+            document.getElementById('species-filter-dropdown').classList.remove('show');
+
+            // Filter the hits table
+            filterHitsTable();
+        }
+
+        // Clear species filter
+        function clearSpeciesFilter() {
+            document.querySelectorAll('.species-checkbox').forEach(cb => cb.checked = false);
+            selectedSpecies.clear();
+            excludedSpecies.clear();
+            updateActiveFilters();
+            document.getElementById('btn-recalc').classList.add('hidden');
+            document.getElementById('species-filter-dropdown').classList.remove('show');
+            populateHitsTable(allHits);
+        }
+
+        // Quick exclude human function
+        function excludeHuman() {
+            // Add Homo sapiens to excluded species
+            excludedSpecies.add('Homo sapiens');
+            updateActiveFilters();
+            document.getElementById('btn-recalc').classList.remove('hidden');
+            filterHitsTable();
+        }
+
+        // Update active filters display
+        function updateActiveFilters() {
+            const container = document.getElementById('active-filters');
+            container.innerHTML = '';
+
+            if (selectedSpecies.size === 0 && excludedSpecies.size === 0) {
+                return;
+            }
+
+            selectedSpecies.forEach(species => {
+                const tag = document.createElement('span');
+                tag.className = 'inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs';
+                tag.innerHTML = `
+                    Include: ${species}
+                    <button onclick="removeSpeciesFilter('${species}', 'include')" class="hover:text-green-900">&times;</button>
+                `;
+                container.appendChild(tag);
+            });
+
+            excludedSpecies.forEach(species => {
+                const tag = document.createElement('span');
+                tag.className = 'inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs';
+                tag.innerHTML = `
+                    Exclude: ${species}
+                    <button onclick="removeSpeciesFilter('${species}', 'exclude')" class="hover:text-red-900">&times;</button>
+                `;
+                container.appendChild(tag);
+            });
+        }
+
+        // Remove a species filter
+        function removeSpeciesFilter(species, type) {
+            if (type === 'include') {
+                selectedSpecies.delete(species);
+                const checkbox = document.querySelector(`input.species-checkbox[value="${species}"]`);
+                if (checkbox) checkbox.checked = false;
+            } else {
+                excludedSpecies.delete(species);
+            }
+            updateActiveFilters();
+            document.getElementById('btn-recalc').classList.toggle('hidden',
+                selectedSpecies.size === 0 && excludedSpecies.size === 0);
+            filterHitsTable();
+        }
+
+        // Filter hits table based on selected species
+        function filterHitsTable() {
+            let filteredHits = allHits;
+
+            if (selectedSpecies.size > 0) {
+                filteredHits = filteredHits.filter(hit => selectedSpecies.has(hit.species));
+            }
+
+            if (excludedSpecies.size > 0) {
+                filteredHits = filteredHits.filter(hit => !excludedSpecies.has(hit.species));
+            }
+
+            populateHitsTable(filteredHits);
+        }
+
+        // Recalculate conservation with species filter
+        async function recalculateConservation() {
+            if (!currentJobId) return;
+
+            const btn = document.getElementById('btn-recalc');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Calculating...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/conservation/${currentJobId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        include_species: Array.from(selectedSpecies),
+                        exclude_species: Array.from(excludedSpecies)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    conservationData = data.conservation || [];
+
+                    // Update conservation display
+                    const highlyConserved = conservationData.filter(r => r.score > 0.8).length;
+                    document.getElementById('stat-conserved').textContent = highlyConserved;
+
+                    // Update conservation details
+                    const consDetails = document.getElementById('conservation-details');
+                    const highConsRes = conservationData.filter(r => r.score > 0.8);
+                    if (highConsRes.length > 0) {
+                        consDetails.innerHTML = highConsRes.map(r =>
+                            `<span class="inline-block px-2 py-1 m-1 bg-red-100 text-red-800 rounded text-sm">${r.aa}${r.resseq} (${(r.score * 100).toFixed(0)}%)</span>`
+                        ).join('');
+                    } else {
+                        consDetails.innerHTML = '<p class="text-gray-500">No highly conserved residues found</p>';
+                    }
+
+                    // Update visualization
+                    if (showConservation) {
+                        applyConservationColoring();
+                    }
+                }
+            } catch (error) {
+                console.error('Conservation recalculation failed:', error);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Populate ligand categories (Kamaji-style collapsible)
+        function populateLigandCategories(clusters, allLigands) {
+            const container = document.getElementById('ligand-categories');
+            container.innerHTML = '';
+
+            // Create a map for quick ligand lookup by name+source
+            const ligandMap = new Map();
+            allLigands.forEach((lig, idx) => {
+                ligandMap.set(`${lig.name}_${lig.source}`, idx);
+            });
+
+            Object.entries(clusters).forEach(([categoryKey, ligands]) => {
+                if (ligands.length === 0) return;
+
+                const categoryName = categoryNames[categoryKey] || categoryKey;
+                const categoryColor = categoryColors[categoryKey] || '#888888';
+
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'mb-2 border rounded';
+
+                // Category header (collapsible)
+                const header = document.createElement('div');
+                header.className = 'category-header p-2 flex items-center justify-between';
+                header.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <svg class="category-chevron w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                        <input type="checkbox" class="category-checkbox" checked
+                               onchange="toggleCategoryVisibility('${categoryKey}', this.checked)">
+                        <div class="w-3 h-3 rounded" style="background-color: ${categoryColor}"></div>
+                        <span class="font-medium text-sm">${categoryName}</span>
+                    </div>
+                    <span class="text-xs text-gray-500">${ligands.length} ligand${ligands.length > 1 ? 's' : ''}</span>
+                `;
+
+                // Category content (ligands list)
+                const content = document.createElement('div');
+                content.className = 'category-content';
+                content.id = `category-content-${categoryKey}`;
+
+                const ligandColors = [
+                    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+                    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+                ];
+
+                ligands.forEach((lig, idx) => {
+                    const globalIdx = ligandMap.get(`${lig.name}_${lig.source}`);
+                    const color = ligandColors[globalIdx % ligandColors.length];
+
+                    const item = document.createElement('div');
+                    item.className = 'ligand-item p-2 pl-8 border-t cursor-pointer flex items-center';
+                    item.setAttribute('data-category', categoryKey);
+                    item.innerHTML = `
+                        <input type="checkbox" class="ligand-checkbox mr-2" checked
+                               data-ligand-idx="${globalIdx}"
+                               onchange="toggleLigandVisibility(${globalIdx}, this.checked)">
+                        <div class="w-3 h-3 rounded mr-2" style="background-color: ${color}"></div>
+                        <div class="flex-1">
+                            <div class="font-medium text-sm">${lig.name}</div>
+                            <div class="text-xs text-gray-500">From: ${lig.source}</div>
+                        </div>
+                    `;
+                    item.onclick = (e) => {
+                        if (e.target.type !== 'checkbox') {
+                            highlightLigand(globalIdx);
+                        }
+                    };
+                    content.appendChild(item);
+                });
+
+                // Toggle collapse on header click
+                header.onclick = (e) => {
+                    if (e.target.type === 'checkbox') return;
+                    const chevron = header.querySelector('.category-chevron');
+                    chevron.classList.toggle('expanded');
+                    content.classList.toggle('expanded');
+                };
+
+                categoryDiv.appendChild(header);
+                categoryDiv.appendChild(content);
+                container.appendChild(categoryDiv);
+            });
+        }
+
+        // Expand all categories
+        function expandAllCategories() {
+            document.querySelectorAll('.category-content').forEach(el => el.classList.add('expanded'));
+            document.querySelectorAll('.category-chevron').forEach(el => el.classList.add('expanded'));
+        }
+
+        // Collapse all categories
+        function collapseAllCategories() {
+            document.querySelectorAll('.category-content').forEach(el => el.classList.remove('expanded'));
+            document.querySelectorAll('.category-chevron').forEach(el => el.classList.remove('expanded'));
+        }
+
+        // Toggle category visibility
+        function toggleCategoryVisibility(categoryKey, visible) {
+            document.querySelectorAll(`.ligand-item[data-category="${categoryKey}"]`).forEach(el => {
+                const checkbox = el.querySelector('.ligand-checkbox');
+                const idx = parseInt(checkbox.getAttribute('data-ligand-idx'));
+                checkbox.checked = visible;
+                toggleLigandVisibility(idx, visible);
+            });
+        }
+
+        // Toggle individual ligand visibility
+        function toggleLigandVisibility(idx, visible) {
+            if (idx < ligandModels.length) {
+                const colors = [
+                    0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4, 0xFFEAA7,
+                    0xDDA0DD, 0x98D8C8, 0xF7DC6F, 0xBB8FCE, 0x85C1E9
+                ];
+                if (visible) {
+                    viewer.setStyle({model: ligandModels[idx]}, {
+                        stick: {radius: 0.2, color: colors[idx % colors.length]}
+                    });
+                } else {
+                    viewer.setStyle({model: ligandModels[idx]}, {});
+                }
+                viewer.render();
+            }
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('species-filter-dropdown');
+            const button = event.target.closest('button');
+            if (!event.target.closest('.species-dropdown') && dropdown) {
+                dropdown.classList.remove('show');
+            }
+        });
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {

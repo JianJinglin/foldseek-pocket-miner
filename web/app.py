@@ -11,12 +11,13 @@ import subprocess
 import tempfile
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional, List, Tuple
-from collections import Counter
+from typing import Dict, Any, Optional, List, Tuple, Set
+from collections import Counter, defaultdict
 import numpy as np
 
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
+import requests
 
 # Add parent directory to path for imports
 import sys
@@ -53,6 +54,302 @@ AA_CODES = {
     'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F', 'PRO': 'P',
     'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y', 'VAL': 'V',
 }
+
+# Ligand category definitions for Kamaji-style clustering
+LIGAND_CATEGORIES = {
+    'small_molecule': {
+        'name': 'Small Molecules',
+        'description': 'Drug-like compounds and cofactors',
+        'keywords': ['drug', 'inhibitor', 'cofactor', 'ligand'],
+    },
+    'nucleotide': {
+        'name': 'Nucleotides & Nucleic Acids',
+        'description': 'ATP, GTP, DNA, RNA fragments',
+        'patterns': ['ATP', 'ADP', 'AMP', 'GTP', 'GDP', 'GMP', 'CTP', 'UTP',
+                     'NAD', 'FAD', 'FMN', 'SAM', 'SAH', 'COA', 'ACP'],
+    },
+    'saccharide': {
+        'name': 'Saccharides',
+        'description': 'Sugars and carbohydrates',
+        'patterns': ['GAL', 'GLC', 'MAN', 'FUC', 'SIA', 'NAG', 'BMA', 'BGC'],
+    },
+    'lipid': {
+        'name': 'Lipids',
+        'description': 'Fatty acids and lipid-like molecules',
+        'patterns': ['PLM', 'OLA', 'MYR', 'LDA', 'DGG', 'PEE', 'PLC'],
+    },
+    'peptide': {
+        'name': 'Peptides',
+        'description': 'Small peptide ligands',
+        'patterns': [],  # Detected by presence of peptide bonds
+    },
+    'metal_complex': {
+        'name': 'Metal Complexes',
+        'description': 'Metal-containing cofactors',
+        'patterns': ['HEM', 'HEC', 'CLF', 'FES', 'F3S', 'SF4', 'CLA', 'BCL'],
+    },
+}
+
+# Known nucleotide-like ligands
+NUCLEOTIDE_LIGANDS = {
+    'ATP', 'ADP', 'AMP', 'ANP', 'ACP', 'AGS',
+    'GTP', 'GDP', 'GMP', 'GNP', 'GSP',
+    'CTP', 'CDP', 'CMP',
+    'UTP', 'UDP', 'UMP',
+    'NAD', 'NAP', 'NDP', 'NAI',
+    'FAD', 'FMN',
+    'SAM', 'SAH',
+    'COA', 'ACO',
+}
+
+# Known saccharide ligands
+SACCHARIDE_LIGANDS = {
+    'GAL', 'GLC', 'MAN', 'FUC', 'SIA', 'NAG', 'NDG', 'BMA', 'BGC',
+    'GLA', 'A2G', 'RAM', 'XYS', 'RIB', 'FRU',
+}
+
+# Known metal-containing ligands
+METAL_LIGANDS = {
+    'HEM', 'HEC', 'HEA', 'HEB', 'HEG',
+    'CLF', 'CLA', 'BCL', 'BCB', 'BPH', 'BPB',
+    'FES', 'F3S', 'SF4', 'FEO',
+}
+
+
+def categorize_ligand(resname: str) -> str:
+    """
+    Categorize a ligand based on its residue name.
+
+    Returns category key from LIGAND_CATEGORIES.
+    """
+    resname = resname.upper().strip()
+
+    if resname in NUCLEOTIDE_LIGANDS:
+        return 'nucleotide'
+    elif resname in SACCHARIDE_LIGANDS:
+        return 'saccharide'
+    elif resname in METAL_LIGANDS:
+        return 'metal_complex'
+    else:
+        return 'small_molecule'
+
+
+def cluster_ligands_by_similarity(ligands: List[Dict]) -> Dict[str, List[Dict]]:
+    """
+    Cluster ligands by chemical category (Kamaji-style).
+
+    Groups ligands into categories based on their chemical nature.
+    """
+    clusters = defaultdict(list)
+
+    for lig in ligands:
+        category = categorize_ligand(lig.get('name', ''))
+        lig['category'] = category
+        lig['category_name'] = LIGAND_CATEGORIES.get(category, {}).get('name', 'Other')
+        clusters[category].append(lig)
+
+    return dict(clusters)
+
+
+def fetch_taxonomy_for_pdb(pdb_id: str) -> Dict[str, Any]:
+    """
+    Fetch taxonomy/species information from RCSB for a PDB entry.
+
+    Returns dict with taxonomy_id, scientific_name, common_name, lineage.
+    """
+    try:
+        url = f"https://data.rcsb.org/rest/v1/core/entry/{pdb_id.lower()}"
+        response = requests.get(url, timeout=10, verify=False)
+        response.raise_for_status()
+        data = response.json()
+
+        # Extract source organism info
+        polymer_entities = data.get('rcsb_entry_container_identifiers', {}).get('polymer_entity_ids', [])
+
+        # Get taxonomy from first polymer entity
+        if polymer_entities:
+            entity_url = f"https://data.rcsb.org/rest/v1/core/polymer_entity/{pdb_id.lower()}/{polymer_entities[0]}"
+            entity_response = requests.get(entity_url, timeout=10, verify=False)
+            if entity_response.ok:
+                entity_data = entity_response.json()
+                source_organisms = entity_data.get('rcsb_entity_source_organism', [])
+
+                if source_organisms:
+                    org = source_organisms[0]
+                    return {
+                        'taxonomy_id': org.get('ncbi_taxonomy_id'),
+                        'scientific_name': org.get('ncbi_scientific_name', ''),
+                        'common_name': org.get('common_name', ''),
+                        'source_type': org.get('source_type', ''),
+                    }
+
+        return {}
+    except Exception as e:
+        logger.debug(f"Failed to fetch taxonomy for {pdb_id}: {e}")
+        return {}
+
+
+def fetch_taxonomy_batch(pdb_ids: List[str]) -> Dict[str, Dict]:
+    """
+    Fetch taxonomy information for multiple PDB entries using GraphQL.
+
+    Returns dict mapping pdb_id to taxonomy info.
+    """
+    if not pdb_ids:
+        return {}
+
+    # Use GraphQL for batch query
+    graphql_url = "https://data.rcsb.org/graphql"
+
+    # Build query for multiple entries
+    query = """
+    query getTaxonomy($ids: [String!]!) {
+        entries(entry_ids: $ids) {
+            rcsb_id
+            polymer_entities {
+                rcsb_entity_source_organism {
+                    ncbi_taxonomy_id
+                    ncbi_scientific_name
+                    common_name
+                    source_type
+                }
+            }
+        }
+    }
+    """
+
+    results = {}
+
+    try:
+        # Query in batches of 50
+        batch_size = 50
+        for i in range(0, len(pdb_ids), batch_size):
+            batch = pdb_ids[i:i + batch_size]
+
+            response = requests.post(
+                graphql_url,
+                json={'query': query, 'variables': {'ids': batch}},
+                timeout=30,
+                verify=False
+            )
+
+            if response.ok:
+                data = response.json()
+                entries = data.get('data', {}).get('entries', [])
+
+                for entry in entries:
+                    if not entry:
+                        continue
+                    pdb_id = entry.get('rcsb_id', '').upper()
+
+                    # Get first source organism from first polymer entity
+                    polymer_entities = entry.get('polymer_entities', [])
+                    if polymer_entities:
+                        for pe in polymer_entities:
+                            organisms = pe.get('rcsb_entity_source_organism', [])
+                            if organisms:
+                                org = organisms[0]
+                                results[pdb_id] = {
+                                    'taxonomy_id': org.get('ncbi_taxonomy_id'),
+                                    'scientific_name': org.get('ncbi_scientific_name', ''),
+                                    'common_name': org.get('common_name', ''),
+                                    'source_type': org.get('source_type', ''),
+                                }
+                                break
+
+    except Exception as e:
+        logger.warning(f"GraphQL taxonomy fetch failed: {e}")
+        # Fallback to individual queries
+        for pdb_id in pdb_ids[:20]:  # Limit fallback
+            tax = fetch_taxonomy_for_pdb(pdb_id)
+            if tax:
+                results[pdb_id.upper()] = tax
+
+    return results
+
+
+def group_hits_by_species(hits: List[Dict], taxonomy_data: Dict[str, Dict]) -> Dict[str, List[Dict]]:
+    """
+    Group foldseek hits by species/organism.
+
+    Returns dict mapping species name to list of hits.
+    """
+    groups = defaultdict(list)
+
+    for hit in hits:
+        pdb_id = hit.get('pdb_id', '').upper()
+        tax = taxonomy_data.get(pdb_id, {})
+        species = tax.get('scientific_name', 'Unknown')
+        hit['species'] = species
+        hit['taxonomy_id'] = tax.get('taxonomy_id')
+        hit['common_name'] = tax.get('common_name', '')
+        groups[species].append(hit)
+
+    return dict(groups)
+
+
+def calculate_conservation_by_species(
+    query_seq: Dict[int, str],
+    aligned_seqs: List[Dict[int, str]],
+    species_filter: Optional[Set[str]] = None,
+    exclude_species: Optional[Set[str]] = None
+) -> Dict[int, float]:
+    """
+    Calculate conservation scores with species filtering.
+
+    Args:
+        query_seq: Query sequence as dict of resseq -> aa
+        aligned_seqs: List of aligned sequences with metadata
+        species_filter: Only include these species (if provided)
+        exclude_species: Exclude these species (e.g., {'Homo sapiens'})
+
+    Returns dict mapping residue number to conservation score (0-1).
+    """
+    conservation = {}
+
+    for resseq, query_aa in query_seq.items():
+        aas = [query_aa]
+
+        for seq_data in aligned_seqs:
+            # Check species filter
+            if isinstance(seq_data, dict):
+                species = seq_data.get('species', '')
+                seq = seq_data.get('sequence', {})
+
+                if species_filter and species not in species_filter:
+                    continue
+                if exclude_species and species in exclude_species:
+                    continue
+
+                if resseq in seq:
+                    aas.append(seq[resseq])
+            else:
+                # Legacy format: just sequence dict
+                if resseq in seq_data:
+                    aas.append(seq_data[resseq])
+
+        if len(aas) <= 1:
+            conservation[resseq] = 0.5
+            continue
+
+        counts = Counter(aas)
+        total = len(aas)
+
+        entropy = 0.0
+        for count in counts.values():
+            freq = count / total
+            if freq > 0:
+                entropy -= freq * np.log2(freq)
+
+        max_entropy = np.log2(min(20, total))
+        if max_entropy > 0:
+            normalized = entropy / max_entropy
+        else:
+            normalized = 0
+
+        conservation[resseq] = 1.0 - normalized
+
+    return conservation
 
 
 class JobStatus:
@@ -260,12 +557,33 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
             evalue=1e-3
         )
 
-        jobs[job_id]["hits"] = [
+        # Step 2.5: Fetch taxonomy for all hits
+        jobs[job_id]["current_step"] = "Fetching taxonomy information..."
+        pdb_ids = [h.pdb_id for h in hits]
+        taxonomy_data = fetch_taxonomy_batch(pdb_ids)
+        logger.info(f"Fetched taxonomy for {len(taxonomy_data)} structures")
+
+        hits_list = [
             {"pdb_id": h.pdb_id, "chain": h.chain, "evalue": h.evalue,
              "score": h.score, "seq_identity": h.seq_identity}
             for h in hits
         ]
-        jobs[job_id]["progress"] = 30
+
+        # Add taxonomy info to hits
+        for hit in hits_list:
+            pdb_id = hit['pdb_id'].upper()
+            tax = taxonomy_data.get(pdb_id, {})
+            hit['species'] = tax.get('scientific_name', 'Unknown')
+            hit['taxonomy_id'] = tax.get('taxonomy_id')
+            hit['common_name'] = tax.get('common_name', '')
+
+        jobs[job_id]["hits"] = hits_list
+        jobs[job_id]["taxonomy_data"] = taxonomy_data
+
+        # Group hits by species
+        species_groups = group_hits_by_species(hits_list.copy(), taxonomy_data)
+        jobs[job_id]["species_groups"] = {k: len(v) for k, v in species_groups.items()}
+        jobs[job_id]["progress"] = 32
 
         if not hits:
             jobs[job_id]["current_step"] = "No similar structures found"
@@ -291,6 +609,7 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
         jobs[job_id]["progress"] = 50
 
         aligned_seqs = []
+        aligned_seqs_with_species = []  # For species-filtered conservation
         aligned_pdbs = []
         all_ligands = []
 
@@ -322,14 +641,23 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
                 else:
                     aligned_pdb = target_pdb  # Use unaligned
 
+                # Extract PDB ID from key
+                source_pdb_id = key.split('_')[0]
+
                 # Extract sequence for conservation
                 target_chain = key.split('_')[1] if '_' in key else None
                 seq = extract_sequence_from_pdb(aligned_pdb, target_chain)
                 if seq:
                     aligned_seqs.append(seq)
+                    # Store with species info for filtered analysis
+                    species = taxonomy_data.get(source_pdb_id.upper(), {}).get('scientific_name', 'Unknown')
+                    aligned_seqs_with_species.append({
+                        'sequence': seq,
+                        'species': species,
+                        'pdb_id': source_pdb_id
+                    })
 
                 # Extract ligands
-                source_pdb_id = key.split('_')[0]
                 ligands = extract_ligands_from_pdb(aligned_pdb, source_pdb_id)
 
                 for lig in ligands:
@@ -388,12 +716,24 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
                 seen_ligands.add(key)
                 unique_ligands.append(lig)
 
-        jobs[job_id]["ligand_pdbs"] = unique_ligands
-        jobs[job_id]["ligands"] = [
+        # Categorize ligands (Kamaji-style clustering)
+        ligands_info = [
             {"name": l["name"], "source": l["source"], "chain": l["chain"], "atoms": l["atoms"]}
             for l in unique_ligands
         ]
+
+        # Cluster ligands by category
+        ligand_clusters = cluster_ligands_by_similarity(ligands_info)
+        jobs[job_id]["ligand_clusters"] = {
+            cat: [{"name": lig["name"], "source": lig["source"], "category_name": lig.get("category_name", "")}
+                  for lig in ligs]
+            for cat, ligs in ligand_clusters.items()
+        }
+
+        jobs[job_id]["ligand_pdbs"] = unique_ligands
+        jobs[job_id]["ligands"] = ligands_info
         jobs[job_id]["aligned_count"] = len(aligned_seqs)
+        jobs[job_id]["aligned_seqs_with_species"] = aligned_seqs_with_species
 
         jobs[job_id]["progress"] = 100
         jobs[job_id]["current_step"] = "Complete!"
@@ -491,17 +831,75 @@ def get_results(job_id):
         "hits": job.get("hits", []),
         "ligands": job.get("ligands", []),
         "ligand_pdbs": job.get("ligand_pdbs", []),
+        "ligand_clusters": job.get("ligand_clusters", {}),
         "conservation": job.get("conservation", []),
         "downloaded_count": job.get("downloaded_count", 0),
         "aligned_count": job.get("aligned_count", 0),
         "query_pdb": job.get("query_pdb", ""),
+        "species_groups": job.get("species_groups", {}),
+        "taxonomy_data": job.get("taxonomy_data", {}),
+    })
+
+
+@app.route('/api/conservation/<job_id>', methods=['POST'])
+def get_filtered_conservation(job_id):
+    """
+    Get conservation analysis filtered by species.
+
+    Request body:
+    {
+        "include_species": ["Cytomegalovirus", "HIV-1"],  // optional
+        "exclude_species": ["Homo sapiens"],  // optional
+    }
+    """
+    if job_id not in jobs:
+        return jsonify({"error": "Job not found"}), 404
+
+    job = jobs[job_id]
+    data = request.json or {}
+
+    include_species = set(data.get('include_species', []))
+    exclude_species = set(data.get('exclude_species', []))
+
+    # Get stored aligned sequences with species info
+    aligned_seqs_with_species = job.get("aligned_seqs_with_species", [])
+
+    if not aligned_seqs_with_species:
+        # Fallback to regular conservation
+        return jsonify({
+            "conservation": job.get("conservation", []),
+            "filtered": False
+        })
+
+    # Get query sequence
+    query_pdb = job.get("query_pdb", "")
+    chain = job.get("chain", "A")
+    query_seq = extract_sequence_from_pdb(query_pdb, chain)
+
+    # Calculate filtered conservation
+    conservation = calculate_conservation_by_species(
+        query_seq,
+        aligned_seqs_with_species,
+        species_filter=include_species if include_species else None,
+        exclude_species=exclude_species if exclude_species else None
+    )
+
+    conservation_data = [
+        {"resseq": resseq, "score": score, "aa": query_seq.get(resseq, 'X')}
+        for resseq, score in sorted(conservation.items())
+    ]
+
+    return jsonify({
+        "conservation": conservation_data,
+        "filtered": True,
+        "include_species": list(include_species),
+        "exclude_species": list(exclude_species)
     })
 
 
 @app.route('/api/pdb/<pdb_id>')
 def fetch_pdb(pdb_id):
     """Fetch PDB structure from RCSB."""
-    import requests
     import urllib3
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

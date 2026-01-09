@@ -7,9 +7,13 @@ import json
 import uuid
 import logging
 import threading
+import subprocess
+import tempfile
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Tuple
+from collections import Counter
+import numpy as np
 
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
@@ -18,10 +22,9 @@ from flask_cors import CORS
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from foldseek_pocket_miner import PocketMiner
 from foldseek_pocket_miner.structure_downloader import StructureDownloader
 from foldseek_pocket_miner.foldseek_search import FoldseekSearcher
-from foldseek_pocket_miner.ligand_extractor import LigandExtractor
+from foldseek_pocket_miner.ligand_extractor import LigandExtractor, EXCLUDE_RESIDUES
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -40,8 +43,16 @@ RESULTS_FOLDER.mkdir(exist_ok=True)
 app.config['UPLOAD_FOLDER'] = str(UPLOAD_FOLDER)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max
 
-# Job storage (in production, use Redis or database)
+# Job storage
 jobs: Dict[str, Dict[str, Any]] = {}
+
+# Amino acid codes
+AA_CODES = {
+    'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C',
+    'GLN': 'Q', 'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I',
+    'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F', 'PRO': 'P',
+    'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y', 'VAL': 'V',
+}
 
 
 class JobStatus:
@@ -51,9 +62,164 @@ class JobStatus:
     FAILED = "failed"
 
 
+def extract_sequence_from_pdb(pdb_content: str, chain: str = None) -> Dict[int, str]:
+    """Extract amino acid sequence from PDB content."""
+    sequence = {}
+    seen = set()
+
+    for line in pdb_content.split('\n'):
+        if line.startswith('ATOM'):
+            res_chain = line[21:22].strip()
+            if chain and res_chain != chain:
+                continue
+
+            resseq = int(line[22:26].strip())
+            resname = line[17:20].strip()
+
+            if (res_chain, resseq) not in seen:
+                seen.add((res_chain, resseq))
+                aa = AA_CODES.get(resname, 'X')
+                sequence[resseq] = aa
+
+    return sequence
+
+
+def calculate_conservation(query_seq: Dict[int, str], aligned_seqs: List[Dict[int, str]]) -> Dict[int, float]:
+    """
+    Calculate conservation score for each residue.
+
+    Returns dict mapping residue number to conservation score (0-1).
+    Higher score = more conserved.
+    """
+    conservation = {}
+
+    for resseq, query_aa in query_seq.items():
+        # Collect amino acids at this position
+        aas = [query_aa]
+        for seq in aligned_seqs:
+            if resseq in seq:
+                aas.append(seq[resseq])
+
+        # Calculate Shannon entropy-based conservation
+        if len(aas) <= 1:
+            conservation[resseq] = 0.5  # Unknown
+            continue
+
+        # Count frequencies
+        counts = Counter(aas)
+        total = len(aas)
+
+        # Shannon entropy
+        entropy = 0.0
+        for count in counts.values():
+            freq = count / total
+            if freq > 0:
+                entropy -= freq * np.log2(freq)
+
+        # Normalize (max entropy = log2(20) for 20 amino acids)
+        max_entropy = np.log2(min(20, total))
+        if max_entropy > 0:
+            normalized = entropy / max_entropy
+        else:
+            normalized = 0
+
+        # Convert to conservation (1 - entropy)
+        conservation[resseq] = 1.0 - normalized
+
+    return conservation
+
+
+def extract_ligands_from_pdb(pdb_content: str, source_name: str = "") -> List[Dict]:
+    """Extract ligand atoms from PDB content."""
+    ligands = {}
+
+    for line in pdb_content.split('\n'):
+        if line.startswith('HETATM'):
+            resname = line[17:20].strip()
+            if resname in EXCLUDE_RESIDUES:
+                continue
+
+            chain = line[21:22].strip()
+            resseq = int(line[22:26].strip())
+            key = (resname, chain, resseq)
+
+            if key not in ligands:
+                ligands[key] = {
+                    'name': resname,
+                    'chain': chain,
+                    'resseq': resseq,
+                    'source': source_name,
+                    'atoms': []
+                }
+
+            # Extract atom info
+            x = float(line[30:38].strip())
+            y = float(line[38:46].strip())
+            z = float(line[46:54].strip())
+            ligands[key]['atoms'].append({'x': x, 'y': y, 'z': z, 'line': line})
+
+    # Filter ligands with enough atoms
+    result = []
+    for lig in ligands.values():
+        if len(lig['atoms']) >= 5:
+            result.append(lig)
+
+    return result
+
+
+def align_structure_pymol(query_pdb: str, target_pdb: str, pymol_path: str = "pymol") -> Tuple[str, float]:
+    """
+    Align target structure to query using PyMOL.
+    Returns aligned PDB content and RMSD.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        query_path = os.path.join(tmpdir, "query.pdb")
+        target_path = os.path.join(tmpdir, "target.pdb")
+        aligned_path = os.path.join(tmpdir, "aligned.pdb")
+
+        with open(query_path, 'w') as f:
+            f.write(query_pdb)
+        with open(target_path, 'w') as f:
+            f.write(target_pdb)
+
+        script = f'''
+from pymol import cmd
+cmd.load("{query_path}", "query")
+cmd.load("{target_path}", "target")
+result = cmd.align("target", "query")
+cmd.save("{aligned_path}", "target")
+print(f"RMSD: {{result[0]}}")
+cmd.quit()
+'''
+        script_path = os.path.join(tmpdir, "align.py")
+        with open(script_path, 'w') as f:
+            f.write(script)
+
+        try:
+            result = subprocess.run(
+                [pymol_path, "-cq", script_path],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+
+            rmsd = 0.0
+            for line in result.stdout.split('\n'):
+                if 'RMSD:' in line:
+                    rmsd = float(line.split(':')[1].strip())
+
+            if os.path.exists(aligned_path):
+                with open(aligned_path, 'r') as f:
+                    return f.read(), rmsd
+        except Exception as e:
+            logger.warning(f"PyMOL alignment failed: {e}")
+
+        return target_pdb, 0.0
+
+
 def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
                 structure_path: str = None, max_hits: int = 50):
-    """Run the pocket mining pipeline in a background thread."""
+    """Run the pocket mining pipeline with conservation and pharmacophore analysis."""
     try:
         jobs[job_id]["status"] = JobStatus.RUNNING
         jobs[job_id]["progress"] = 0
@@ -62,8 +228,8 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
         output_dir = RESULTS_FOLDER / job_id
         output_dir.mkdir(exist_ok=True)
 
-        # Step 1: Prepare query structure
-        jobs[job_id]["current_step"] = "Preparing query structure..."
+        # Step 1: Download query structure
+        jobs[job_id]["current_step"] = "Downloading query structure..."
         jobs[job_id]["progress"] = 5
 
         if pdb_id and not structure_path:
@@ -72,18 +238,22 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
             if not structure_path:
                 raise Exception(f"Failed to download {pdb_id}")
 
+        with open(structure_path, 'r') as f:
+            query_pdb = f.read()
+
         jobs[job_id]["query_structure"] = structure_path
+        jobs[job_id]["query_pdb"] = query_pdb
         jobs[job_id]["progress"] = 10
 
-        # Step 2: Run Foldseek search
-        jobs[job_id]["current_step"] = "Searching for similar structures with Foldseek..."
+        # Extract query sequence
+        query_seq = extract_sequence_from_pdb(query_pdb, chain)
+        logger.info(f"Query has {len(query_seq)} residues")
+
+        # Step 2: Foldseek search
+        jobs[job_id]["current_step"] = "Searching similar structures (Foldseek)..."
         jobs[job_id]["progress"] = 15
 
-        searcher = FoldseekSearcher(
-            database="pdb100",
-            use_web_api=True  # Use Foldseek web API (no local database needed)
-        )
-
+        searcher = FoldseekSearcher(database="pdb100", use_web_api=True)
         hits = searcher.search(
             structure_path=structure_path,
             max_hits=max_hits,
@@ -91,13 +261,8 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
         )
 
         jobs[job_id]["hits"] = [
-            {
-                "pdb_id": h.pdb_id,
-                "chain": h.chain,
-                "evalue": h.evalue,
-                "score": h.score,
-                "seq_identity": h.seq_identity
-            }
+            {"pdb_id": h.pdb_id, "chain": h.chain, "evalue": h.evalue,
+             "score": h.score, "seq_identity": h.seq_identity}
             for h in hits
         ]
         jobs[job_id]["progress"] = 30
@@ -111,79 +276,131 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
         jobs[job_id]["current_step"] = f"Downloading {len(hits)} structures..."
         jobs[job_id]["progress"] = 35
 
-        struct_downloader = StructureDownloader(
-            output_dir=str(output_dir / "structures")
-        )
-
+        struct_downloader = StructureDownloader(output_dir=str(output_dir / "structures"))
         pdb_ids = [h.pdb_id for h in hits]
-        chains = [h.chain for h in hits]
-        downloaded = struct_downloader.download_batch(pdb_ids, chains, show_progress=False)
+        chains_list = [h.chain for h in hits]
+        downloaded = struct_downloader.download_batch(pdb_ids, chains_list, show_progress=False)
 
         valid_paths = {k: v for k, v in downloaded.items() if v}
         jobs[job_id]["downloaded_count"] = len(valid_paths)
+        logger.info(f"Downloaded {len(valid_paths)} structures")
+        jobs[job_id]["progress"] = 45
+
+        # Step 4: Align structures and calculate conservation
+        jobs[job_id]["current_step"] = "Aligning structures & calculating conservation..."
         jobs[job_id]["progress"] = 50
 
-        # Step 4: Filter by ligands
-        jobs[job_id]["current_step"] = "Filtering structures with ligands..."
-        jobs[job_id]["progress"] = 55
-
-        structures_with_ligands = struct_downloader.filter_by_ligand(list(valid_paths.keys()))
-        ligand_pdb_ids = {item[0] for item in structures_with_ligands}
-
-        # Store ligand info
-        jobs[job_id]["ligand_info"] = [
-            {"pdb_id": pdb_id, "ligands": [l["id"] for l in ligs]}
-            for pdb_id, ligs in structures_with_ligands
-        ]
-        jobs[job_id]["progress"] = 65
-
-        # Step 5: Extract ligands from downloaded structures
-        jobs[job_id]["current_step"] = "Extracting ligands..."
-        jobs[job_id]["progress"] = 70
-
-        extractor = LigandExtractor(output_dir=str(output_dir / "ligands"))
+        aligned_seqs = []
+        aligned_pdbs = []
         all_ligands = []
 
-        for key, path in valid_paths.items():
-            if path and key.split('_')[0] in ligand_pdb_ids:
-                ligands = extractor.extract_ligands(path)
+        # Check if PyMOL is available
+        pymol_available = False
+        try:
+            result = subprocess.run(["pymol", "-c", "-Q"], capture_output=True, timeout=5)
+            pymol_available = True
+        except:
+            # Try common paths
+            for path in ["/opt/homebrew/bin/pymol", "/usr/local/bin/pymol",
+                        "/Applications/PyMOL.app/Contents/MacOS/PyMOL"]:
+                if os.path.exists(path):
+                    pymol_available = True
+                    break
+
+        processed = 0
+        for key, path in list(valid_paths.items())[:30]:  # Limit to 30 structures
+            if not path:
+                continue
+
+            try:
+                with open(path, 'r') as f:
+                    target_pdb = f.read()
+
+                # Align if PyMOL available
+                if pymol_available:
+                    aligned_pdb, rmsd = align_structure_pymol(query_pdb, target_pdb)
+                else:
+                    aligned_pdb = target_pdb  # Use unaligned
+
+                # Extract sequence for conservation
+                target_chain = key.split('_')[1] if '_' in key else None
+                seq = extract_sequence_from_pdb(aligned_pdb, target_chain)
+                if seq:
+                    aligned_seqs.append(seq)
+
+                # Extract ligands
+                source_pdb_id = key.split('_')[0]
+                ligands = extract_ligands_from_pdb(aligned_pdb, source_pdb_id)
+
                 for lig in ligands:
-                    lig_path = extractor.save_ligand(lig)
+                    # Build ligand PDB string
+                    lig_pdb = f"REMARK Ligand {lig['name']} from {lig['source']}\n"
+                    for atom in lig['atoms']:
+                        lig_pdb += atom['line'] + '\n'
+                    lig_pdb += "END\n"
+
                     all_ligands.append({
-                        "name": lig.resname,
-                        "source": lig.source_pdb,
-                        "chain": lig.chain,
-                        "atoms": lig.num_atoms,
-                        "path": lig_path
+                        'name': lig['name'],
+                        'source': lig['source'],
+                        'chain': lig['chain'],
+                        'atoms': len(lig['atoms']),
+                        'pdb': lig_pdb
                     })
 
-        jobs[job_id]["ligands"] = all_ligands
-        jobs[job_id]["progress"] = 85
+                aligned_pdbs.append({
+                    'pdb_id': source_pdb_id,
+                    'pdb': aligned_pdb
+                })
+
+                processed += 1
+                jobs[job_id]["progress"] = 50 + int((processed / min(30, len(valid_paths))) * 30)
+
+            except Exception as e:
+                logger.warning(f"Failed to process {key}: {e}")
+                continue
+
+        logger.info(f"Processed {processed} structures, found {len(all_ligands)} ligands")
+
+        # Step 5: Calculate conservation
+        jobs[job_id]["current_step"] = "Computing sequence conservation..."
+        jobs[job_id]["progress"] = 82
+
+        conservation = calculate_conservation(query_seq, aligned_seqs)
+
+        # Convert to list for JSON
+        conservation_data = [
+            {"resseq": resseq, "score": score, "aa": query_seq.get(resseq, 'X')}
+            for resseq, score in sorted(conservation.items())
+        ]
+        jobs[job_id]["conservation"] = conservation_data
+        logger.info(f"Calculated conservation for {len(conservation)} residues")
 
         # Step 6: Prepare visualization data
         jobs[job_id]["current_step"] = "Preparing visualization..."
         jobs[job_id]["progress"] = 90
 
-        # Read query structure for visualization
-        with open(structure_path, 'r') as f:
-            jobs[job_id]["query_pdb"] = f.read()
+        # Deduplicate ligands by name
+        seen_ligands = set()
+        unique_ligands = []
+        for lig in all_ligands:
+            key = f"{lig['name']}_{lig['source']}"
+            if key not in seen_ligands and len(unique_ligands) < 30:
+                seen_ligands.add(key)
+                unique_ligands.append(lig)
 
-        # Read ligand structures
-        ligand_pdbs = []
-        for lig_info in all_ligands[:20]:  # Limit to 20 ligands for visualization
-            if os.path.exists(lig_info["path"]):
-                with open(lig_info["path"], 'r') as f:
-                    ligand_pdbs.append({
-                        "name": lig_info["name"],
-                        "source": lig_info["source"],
-                        "pdb": f.read()
-                    })
-        jobs[job_id]["ligand_pdbs"] = ligand_pdbs
+        jobs[job_id]["ligand_pdbs"] = unique_ligands
+        jobs[job_id]["ligands"] = [
+            {"name": l["name"], "source": l["source"], "chain": l["chain"], "atoms": l["atoms"]}
+            for l in unique_ligands
+        ]
+        jobs[job_id]["aligned_count"] = len(aligned_seqs)
 
         jobs[job_id]["progress"] = 100
         jobs[job_id]["current_step"] = "Complete!"
         jobs[job_id]["status"] = JobStatus.COMPLETED
         jobs[job_id]["completed_at"] = datetime.now().isoformat()
+
+        logger.info(f"Job {job_id} completed: {len(hits)} hits, {len(unique_ligands)} ligands, {len(conservation)} conserved residues")
 
     except Exception as e:
         logger.error(f"Job {job_id} failed: {e}")
@@ -214,7 +431,6 @@ def submit_job():
     if len(pdb_id) != 4:
         return jsonify({"error": "Invalid PDB ID format"}), 400
 
-    # Create job
     job_id = str(uuid.uuid4())[:8]
     jobs[job_id] = {
         "id": job_id,
@@ -227,9 +443,9 @@ def submit_job():
         "created_at": datetime.now().isoformat(),
         "hits": [],
         "ligands": [],
+        "conservation": [],
     }
 
-    # Start background thread
     thread = threading.Thread(
         target=run_pipeline,
         args=(job_id, pdb_id, chain, None, max_hits)
@@ -274,10 +490,11 @@ def get_results(job_id):
         "status": job["status"],
         "hits": job.get("hits", []),
         "ligands": job.get("ligands", []),
-        "ligand_info": job.get("ligand_info", []),
-        "downloaded_count": job.get("downloaded_count", 0),
-        "query_pdb": job.get("query_pdb", ""),
         "ligand_pdbs": job.get("ligand_pdbs", []),
+        "conservation": job.get("conservation", []),
+        "downloaded_count": job.get("downloaded_count", 0),
+        "aligned_count": job.get("aligned_count", 0),
+        "query_pdb": job.get("query_pdb", ""),
     })
 
 
@@ -297,26 +514,6 @@ def fetch_pdb(pdb_id):
         return response.text, 200, {'Content-Type': 'text/plain'}
     except Exception as e:
         return jsonify({"error": str(e)}), 404
-
-
-@app.route('/api/ligand/<job_id>/<int:ligand_idx>')
-def get_ligand_pdb(job_id, ligand_idx):
-    """Get ligand PDB content."""
-    if job_id not in jobs:
-        return jsonify({"error": "Job not found"}), 404
-
-    job = jobs[job_id]
-    ligands = job.get("ligands", [])
-
-    if ligand_idx >= len(ligands):
-        return jsonify({"error": "Ligand not found"}), 404
-
-    ligand_path = ligands[ligand_idx].get("path")
-    if ligand_path and os.path.exists(ligand_path):
-        with open(ligand_path, 'r') as f:
-            return f.read(), 200, {'Content-Type': 'text/plain'}
-
-    return jsonify({"error": "Ligand file not found"}), 404
 
 
 @app.route('/static/<path:filename>')

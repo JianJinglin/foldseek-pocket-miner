@@ -11,14 +11,11 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Chart.js for data visualization -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <style>
         .viewer-container {
             position: relative;
             width: 100%;
-            height: 500px;
+            height: 550px;
             border: 1px solid #e5e7eb;
             border-radius: 8px;
             overflow: hidden;
@@ -45,6 +42,19 @@
             background-color: #dbeafe;
             border-color: #3b82f6;
         }
+
+        .conservation-legend {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .conservation-gradient {
+            width: 120px;
+            height: 16px;
+            background: linear-gradient(to right, #3b82f6, #ffffff, #ef4444);
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -54,7 +64,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900">Foldseek Pocket Miner</h1>
-                    <p class="text-sm text-gray-500">Find similar structures and extract binding pockets</p>
+                    <p class="text-sm text-gray-500">Structure similarity search with conservation & ligand pharmacophore</p>
                 </div>
                 <a href="https://github.com/JianJinglin/foldseek-pocket-miner"
                    target="_blank"
@@ -89,7 +99,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Max Hits</label>
                     <input type="number" id="max-hits"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           placeholder="50" value="50" min="10" max="500">
+                           placeholder="50" value="50" min="10" max="200">
                 </div>
             </div>
 
@@ -97,7 +107,7 @@
                 <button id="submit-btn"
                         onclick="submitJob()"
                         class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span id="btn-text">Search & Mine Pockets</span>
+                    <span id="btn-text">Search & Analyze</span>
                     <svg id="btn-spinner" class="hidden inline w-4 h-4 ml-2 spin" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -129,41 +139,22 @@
                 </div>
             </div>
 
-            <!-- Pipeline steps visualization -->
             <div class="grid grid-cols-6 gap-2 text-center text-xs">
-                <div class="step" data-step="1">
-                    <div id="step-1" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">1</div>
-                    <span>Query</span>
-                </div>
-                <div class="step" data-step="2">
-                    <div id="step-2" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">2</div>
-                    <span>Search</span>
-                </div>
-                <div class="step" data-step="3">
-                    <div id="step-3" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">3</div>
-                    <span>Download</span>
-                </div>
-                <div class="step" data-step="4">
-                    <div id="step-4" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">4</div>
-                    <span>Filter</span>
-                </div>
-                <div class="step" data-step="5">
-                    <div id="step-5" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">5</div>
-                    <span>Extract</span>
-                </div>
-                <div class="step" data-step="6">
-                    <div id="step-6" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">6</div>
-                    <span>Visualize</span>
-                </div>
+                <div class="step"><div id="step-1" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">1</div><span>Query</span></div>
+                <div class="step"><div id="step-2" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">2</div><span>Foldseek</span></div>
+                <div class="step"><div id="step-3" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">3</div><span>Download</span></div>
+                <div class="step"><div id="step-4" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">4</div><span>Align</span></div>
+                <div class="step"><div id="step-5" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">5</div><span>Conservation</span></div>
+                <div class="step"><div id="step-6" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">6</div><span>Visualize</span></div>
             </div>
         </div>
 
         <!-- Results Section -->
         <div id="results-section" class="hidden">
             <!-- Statistics -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                 <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm text-gray-500">Similar Structures</div>
+                    <div class="text-sm text-gray-500">Foldseek Hits</div>
                     <div id="stat-hits" class="text-2xl font-bold text-blue-600">0</div>
                 </div>
                 <div class="bg-white rounded-lg shadow p-4">
@@ -171,12 +162,16 @@
                     <div id="stat-downloaded" class="text-2xl font-bold text-green-600">0</div>
                 </div>
                 <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm text-gray-500">With Ligands</div>
-                    <div id="stat-with-ligands" class="text-2xl font-bold text-purple-600">0</div>
+                    <div class="text-sm text-gray-500">Aligned</div>
+                    <div id="stat-aligned" class="text-2xl font-bold text-purple-600">0</div>
                 </div>
                 <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm text-gray-500">Unique Ligands</div>
+                    <div class="text-sm text-gray-500">Ligands</div>
                     <div id="stat-ligands" class="text-2xl font-bold text-orange-600">0</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="text-sm text-gray-500">Conserved Residues</div>
+                    <div id="stat-conserved" class="text-2xl font-bold text-red-600">0</div>
                 </div>
             </div>
 
@@ -186,21 +181,28 @@
                 <div class="lg:col-span-2 bg-white rounded-lg shadow">
                     <div class="p-4 border-b">
                         <h3 class="font-semibold">3D Structure Viewer</h3>
-                        <div class="flex gap-2 mt-2">
-                            <button onclick="toggleProtein()" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Toggle Protein</button>
-                            <button onclick="toggleLigands()" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Toggle Ligands</button>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <button onclick="toggleConservation()" id="btn-conservation" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200">Conservation ON</button>
+                            <button onclick="toggleLigands()" id="btn-ligands" class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200">Ligands ON</button>
+                            <button onclick="toggleSurface()" id="btn-surface" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Surface OFF</button>
                             <button onclick="resetView()" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Reset View</button>
-                            <button onclick="toggleSurface()" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Toggle Surface</button>
+                        </div>
+                        <!-- Conservation Legend -->
+                        <div class="mt-3 conservation-legend text-xs text-gray-600">
+                            <span>Conservation:</span>
+                            <span class="text-blue-600">Variable</span>
+                            <div class="conservation-gradient"></div>
+                            <span class="text-red-600">Conserved</span>
                         </div>
                     </div>
                     <div id="viewer" class="viewer-container"></div>
                 </div>
 
-                <!-- Ligand List -->
+                <!-- Ligand Pharmacophore List -->
                 <div class="bg-white rounded-lg shadow">
                     <div class="p-4 border-b">
-                        <h3 class="font-semibold">Extracted Ligands</h3>
-                        <p class="text-sm text-gray-500">Click to highlight in viewer</p>
+                        <h3 class="font-semibold">Ligand Pharmacophore</h3>
+                        <p class="text-sm text-gray-500">Aligned ligands from similar structures</p>
                     </div>
                     <div id="ligand-list" class="max-h-96 overflow-y-auto p-2">
                         <!-- Ligands will be populated here -->
@@ -222,13 +224,20 @@
                                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">E-value</th>
                                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Score</th>
                                 <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Seq ID</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Ligands</th>
                             </tr>
                         </thead>
                         <tbody id="hits-table">
-                            <!-- Hits will be populated here -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Conservation Details -->
+            <div class="mt-6 bg-white rounded-lg shadow">
+                <div class="p-4 border-b">
+                    <h3 class="font-semibold">Highly Conserved Residues (Score > 0.8)</h3>
+                </div>
+                <div id="conservation-details" class="p-4 max-h-48 overflow-y-auto">
                 </div>
             </div>
         </div>
@@ -260,16 +269,15 @@
         let pollInterval = null;
         let proteinModel = null;
         let ligandModels = [];
-        let showProtein = true;
+        let conservationData = [];
+        let showConservation = true;
         let showLigands = true;
         let showSurface = false;
 
         // Initialize 3Dmol viewer
         function initViewer() {
             const element = document.getElementById('viewer');
-            viewer = $3Dmol.createViewer(element, {
-                backgroundColor: 'white'
-            });
+            viewer = $3Dmol.createViewer(element, {backgroundColor: 'white'});
         }
 
         // Set example values
@@ -296,6 +304,11 @@
             document.getElementById('error-section').classList.add('hidden');
             document.getElementById('results-section').classList.add('hidden');
             document.getElementById('progress-section').classList.remove('hidden');
+
+            // Reset step indicators
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById(`step-${i}`).className = 'w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1';
+            }
 
             try {
                 const response = await fetch('/api/submit', {
@@ -358,7 +371,7 @@
             document.getElementById('progress-step').textContent = step;
 
             // Update step indicators
-            const stepThresholds = [10, 30, 50, 65, 85, 100];
+            const stepThresholds = [10, 30, 45, 80, 90, 100];
             for (let i = 0; i < stepThresholds.length; i++) {
                 const stepEl = document.getElementById(`step-${i + 1}`);
                 if (progress >= stepThresholds[i]) {
@@ -392,20 +405,22 @@
 
         // Display results
         function displayResults(data) {
+            // Store conservation data
+            conservationData = data.conservation || [];
+
             // Update statistics
             document.getElementById('stat-hits').textContent = data.hits.length;
             document.getElementById('stat-downloaded').textContent = data.downloaded_count;
-            document.getElementById('stat-with-ligands').textContent = data.ligand_info.length;
+            document.getElementById('stat-aligned').textContent = data.aligned_count || 0;
             document.getElementById('stat-ligands').textContent = data.ligands.length;
+
+            // Count highly conserved residues
+            const highlyConserved = conservationData.filter(r => r.score > 0.8).length;
+            document.getElementById('stat-conserved').textContent = highlyConserved;
 
             // Populate hits table
             const hitsTable = document.getElementById('hits-table');
             hitsTable.innerHTML = '';
-
-            const ligandMap = {};
-            data.ligand_info.forEach(info => {
-                ligandMap[info.pdb_id] = info.ligands.join(', ');
-            });
 
             data.hits.slice(0, 50).forEach(hit => {
                 const row = document.createElement('tr');
@@ -419,7 +434,6 @@
                     <td class="px-4 py-2">${hit.evalue.toExponential(2)}</td>
                     <td class="px-4 py-2">${hit.score.toFixed(1)}</td>
                     <td class="px-4 py-2">${(hit.seq_identity * 100).toFixed(1)}%</td>
-                    <td class="px-4 py-2">${ligandMap[hit.pdb_id] || '-'}</td>
                 `;
                 hitsTable.appendChild(row);
             });
@@ -428,17 +442,36 @@
             const ligandList = document.getElementById('ligand-list');
             ligandList.innerHTML = '';
 
+            const ligandColors = [
+                '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+                '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+            ];
+
             data.ligands.forEach((lig, idx) => {
+                const color = ligandColors[idx % ligandColors.length];
                 const item = document.createElement('div');
-                item.className = 'ligand-item p-2 border rounded mb-2 cursor-pointer';
+                item.className = 'ligand-item p-2 border rounded mb-2 cursor-pointer flex items-center';
                 item.innerHTML = `
-                    <div class="font-medium">${lig.name}</div>
-                    <div class="text-sm text-gray-500">From: ${lig.source} Chain ${lig.chain}</div>
-                    <div class="text-xs text-gray-400">${lig.atoms} atoms</div>
+                    <div class="w-4 h-4 rounded mr-2" style="background-color: ${color}"></div>
+                    <div class="flex-1">
+                        <div class="font-medium">${lig.name}</div>
+                        <div class="text-sm text-gray-500">From: ${lig.source}</div>
+                    </div>
                 `;
                 item.onclick = () => highlightLigand(idx);
                 ligandList.appendChild(item);
             });
+
+            // Display conservation details
+            const consDetails = document.getElementById('conservation-details');
+            const highConsRes = conservationData.filter(r => r.score > 0.8);
+            if (highConsRes.length > 0) {
+                consDetails.innerHTML = highConsRes.map(r =>
+                    `<span class="inline-block px-2 py-1 m-1 bg-red-100 text-red-800 rounded text-sm">${r.aa}${r.resseq} (${(r.score * 100).toFixed(0)}%)</span>`
+                ).join('');
+            } else {
+                consDetails.innerHTML = '<p class="text-gray-500">No highly conserved residues found</p>';
+            }
 
             // Initialize viewer with structures
             initViewer();
@@ -456,46 +489,98 @@
             // Load query protein
             if (data.query_pdb) {
                 proteinModel = viewer.addModel(data.query_pdb, 'pdb');
-                viewer.setStyle({model: proteinModel}, {cartoon: {color: 'spectrum'}});
+
+                // Apply conservation coloring
+                if (showConservation && conservationData.length > 0) {
+                    applyConservationColoring();
+                } else {
+                    viewer.setStyle({model: proteinModel}, {cartoon: {color: 'spectrum'}});
+                }
             }
 
             // Load ligands with different colors
-            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-                           '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
+            const colors = [
+                0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4, 0xFFEAA7,
+                0xDDA0DD, 0x98D8C8, 0xF7DC6F, 0xBB8FCE, 0x85C1E9
+            ];
 
-            data.ligand_pdbs.forEach((lig, idx) => {
-                const model = viewer.addModel(lig.pdb, 'pdb');
-                ligandModels.push(model);
-                viewer.setStyle({model: model}, {
-                    stick: {
-                        radius: 0.2,
-                        color: colors[idx % colors.length]
-                    }
-                });
+            (data.ligand_pdbs || []).forEach((lig, idx) => {
+                if (lig.pdb) {
+                    const model = viewer.addModel(lig.pdb, 'pdb');
+                    ligandModels.push(model);
+                    viewer.setStyle({model: model}, {
+                        stick: {radius: 0.2, color: colors[idx % colors.length]}
+                    });
+                }
             });
 
             viewer.zoomTo();
             viewer.render();
         }
 
-        // Toggle protein visibility
-        function toggleProtein() {
-            showProtein = !showProtein;
-            if (proteinModel !== null) {
-                if (showProtein) {
-                    viewer.setStyle({model: proteinModel}, {cartoon: {color: 'spectrum'}});
-                } else {
-                    viewer.setStyle({model: proteinModel}, {});
+        // Apply conservation coloring to protein
+        function applyConservationColoring() {
+            if (!proteinModel || conservationData.length === 0) return;
+
+            // Create color function based on conservation score
+            // Blue (low) -> White (medium) -> Red (high)
+            viewer.setStyle({model: proteinModel}, {
+                cartoon: {
+                    colorfunc: function(atom) {
+                        const res = conservationData.find(r => r.resseq === atom.resi);
+                        if (!res) return 0xCCCCCC; // Gray for unknown
+
+                        const score = res.score;
+                        // Interpolate: blue (0) -> white (0.5) -> red (1)
+                        if (score < 0.5) {
+                            // Blue to white
+                            const t = score * 2;
+                            const r = Math.round(59 + (255 - 59) * t);
+                            const g = Math.round(130 + (255 - 130) * t);
+                            const b = Math.round(246 + (255 - 246) * t);
+                            return (r << 16) | (g << 8) | b;
+                        } else {
+                            // White to red
+                            const t = (score - 0.5) * 2;
+                            const r = 255;
+                            const g = Math.round(255 - (255 - 68) * t);
+                            const b = Math.round(255 - (255 - 68) * t);
+                            return (r << 16) | (g << 8) | b;
+                        }
+                    }
                 }
-                viewer.render();
+            });
+            viewer.render();
+        }
+
+        // Toggle conservation coloring
+        function toggleConservation() {
+            showConservation = !showConservation;
+            const btn = document.getElementById('btn-conservation');
+
+            if (showConservation) {
+                btn.textContent = 'Conservation ON';
+                btn.className = 'px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200';
+                applyConservationColoring();
+            } else {
+                btn.textContent = 'Conservation OFF';
+                btn.className = 'px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200';
+                if (proteinModel) {
+                    viewer.setStyle({model: proteinModel}, {cartoon: {color: 'spectrum'}});
+                }
             }
+            viewer.render();
         }
 
         // Toggle ligands visibility
         function toggleLigands() {
             showLigands = !showLigands;
-            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-                           '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
+            const btn = document.getElementById('btn-ligands');
+
+            const colors = [
+                0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4, 0xFFEAA7,
+                0xDDA0DD, 0x98D8C8, 0xF7DC6F, 0xBB8FCE, 0x85C1E9
+            ];
 
             ligandModels.forEach((model, idx) => {
                 if (showLigands) {
@@ -504,23 +589,36 @@
                     viewer.setStyle({model: model}, {});
                 }
             });
+
+            if (showLigands) {
+                btn.textContent = 'Ligands ON';
+                btn.className = 'px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200';
+            } else {
+                btn.textContent = 'Ligands OFF';
+                btn.className = 'px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200';
+            }
+
             viewer.render();
         }
 
         // Toggle surface
         function toggleSurface() {
             showSurface = !showSurface;
-            if (proteinModel !== null) {
-                if (showSurface) {
-                    viewer.addSurface($3Dmol.SurfaceType.VDW, {
-                        opacity: 0.7,
-                        color: 'white'
-                    }, {model: proteinModel});
-                } else {
-                    viewer.removeAllSurfaces();
-                }
-                viewer.render();
+            const btn = document.getElementById('btn-surface');
+
+            if (showSurface) {
+                btn.textContent = 'Surface ON';
+                btn.className = 'px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200';
+                viewer.addSurface($3Dmol.SurfaceType.VDW, {
+                    opacity: 0.6,
+                    color: 'white'
+                }, {model: proteinModel});
+            } else {
+                btn.textContent = 'Surface OFF';
+                btn.className = 'px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200';
+                viewer.removeAllSurfaces();
             }
+            viewer.render();
         }
 
         // Reset view
@@ -552,7 +650,7 @@
         // Reset submit button
         function resetSubmitButton() {
             document.getElementById('submit-btn').disabled = false;
-            document.getElementById('btn-text').textContent = 'Search & Mine Pockets';
+            document.getElementById('btn-text').textContent = 'Search & Analyze';
             document.getElementById('btn-spinner').classList.add('hidden');
         }
 

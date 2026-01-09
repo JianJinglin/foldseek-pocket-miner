@@ -69,19 +69,37 @@ class FoldseekHit:
         """Create a FoldseekHit from Foldseek web API result."""
         target = result.get('target', '')
 
-        # Parse target ID - format varies: "pdb100_1abc_A" or "1abc_A"
-        parts = target.split('_')
-        if len(parts) >= 2:
-            # Skip database prefix if present
-            if parts[0] in ['pdb100', 'afdb', 'afdb50']:
-                pdb_id = parts[1].upper()
-                chain = parts[2] if len(parts) > 2 else 'A'
-            else:
-                pdb_id = parts[0].upper()
-                chain = parts[1] if len(parts) > 1 else 'A'
+        # Parse target ID - formats vary:
+        # New format: "3hpq-assembly2.cif.gz_B Crystal structure description..."
+        # Old format: "pdb100_1abc_A" or "1abc_A"
+        pdb_id = ''
+        chain = 'A'
+
+        # Try new format first: PDB ID is before first '-' or before first '_'
+        if '-' in target:
+            # Format: "3hpq-assembly2.cif.gz_B description"
+            pdb_part = target.split('-')[0]
+            pdb_id = pdb_part.upper()
+            # Chain is after the last underscore in the filename part (before space)
+            filename_part = target.split()[0] if ' ' in target else target
+            if '_' in filename_part:
+                chain = filename_part.split('_')[-1]
+        elif '_' in target:
+            # Old format: "pdb100_1abc_A" or "1abc_A"
+            parts = target.split('_')
+            if len(parts) >= 2:
+                # Skip database prefix if present
+                if parts[0] in ['pdb100', 'afdb', 'afdb50']:
+                    pdb_id = parts[1].upper()
+                    chain = parts[2] if len(parts) > 2 else 'A'
+                else:
+                    pdb_id = parts[0].upper()
+                    chain = parts[1] if len(parts) > 1 else 'A'
         else:
             pdb_id = target[:4].upper()
-            chain = 'A'
+
+        # Log the parsed values for debugging
+        logger.debug(f"Parsed target '{target[:50]}...' -> pdb_id='{pdb_id}', chain='{chain}'")
 
         return cls(
             query=query_name,
@@ -357,13 +375,39 @@ class FoldseekSearcher:
 
         # Parse results
         hits = []
-        alignments = results_data.get('alignments', [])
 
-        if not alignments:
-            # Try alternative result format
-            alignments = results_data.get('results', [])
+        # Log the response structure for debugging
+        logger.info(f"Response keys: {list(results_data.keys())}")
+
+        # Handle different API response formats
+        # New format: results -> [{'db': ..., 'alignments': [[hit1, hit2, ...]], ...}]
+        # Old format: alignments -> [hit1, hit2, ...]
+        results = results_data.get('results', [])
+        if results:
+            logger.info(f"Found {len(results)} result sets")
+            # Extract alignments from each result set
+            all_alignments = []
+            for result_set in results:
+                if isinstance(result_set, dict):
+                    db_alignments = result_set.get('alignments', [])
+                    if db_alignments:
+                        all_alignments.extend(db_alignments)
+            alignments = all_alignments
+            logger.info(f"Total alignment groups: {len(alignments)}")
+        else:
+            # Fallback to old format
+            alignments = results_data.get('alignments', [])
 
         for alignment in alignments:
+            # Log first alignment structure for debugging
+            if alignments.index(alignment) == 0:
+                if isinstance(alignment, list) and len(alignment) > 0:
+                    logger.info(f"First hit data keys: {list(alignment[0].keys()) if isinstance(alignment[0], dict) else type(alignment[0])}")
+                    logger.info(f"First hit data sample: {str(alignment[0])[:500]}")
+                elif isinstance(alignment, dict):
+                    logger.info(f"First alignment keys: {list(alignment.keys())}")
+                    logger.info(f"First alignment data sample: {str(alignment)[:500]}")
+
             # Each alignment can have multiple hits
             if isinstance(alignment, list):
                 for hit_data in alignment[:max_hits]:

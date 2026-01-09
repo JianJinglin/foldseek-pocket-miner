@@ -522,5 +522,186 @@ def serve_static(filename):
     return send_from_directory('static', filename)
 
 
+def set_bfactors_for_conservation(pdb_content: str, conservation: Dict[int, float], chain: str = None) -> str:
+    """
+    Set B-factors in PDB to conservation scores for PyMOL visualization.
+    Conservation scores (0-1) are scaled to 0-100 for B-factor column.
+    """
+    lines = []
+    for line in pdb_content.split('\n'):
+        if line.startswith('ATOM'):
+            res_chain = line[21:22].strip()
+            if chain and res_chain and res_chain != chain:
+                lines.append(line)
+                continue
+
+            try:
+                resseq = int(line[22:26].strip())
+                score = conservation.get(resseq, 0.5)
+                # Scale to 0-100 for B-factor
+                bfactor = score * 100.0
+                # Replace B-factor column (60-66)
+                new_line = line[:60] + f"{bfactor:6.2f}" + line[66:]
+                lines.append(new_line)
+            except:
+                lines.append(line)
+        else:
+            lines.append(line)
+
+    return '\n'.join(lines)
+
+
+@app.route('/api/download_pse/<job_id>')
+def download_pse(job_id):
+    """Generate and download PyMOL session file."""
+    if job_id not in jobs:
+        return jsonify({"error": "Job not found"}), 404
+
+    job = jobs[job_id]
+
+    if job["status"] != JobStatus.COMPLETED:
+        return jsonify({"error": "Job not completed yet"}), 400
+
+    # Create temporary directory for PyMOL session generation
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pdb_id = job["pdb_id"]
+        chain = job.get("chain", "A")
+
+        # Get conservation data as dict
+        conservation = {c["resseq"]: c["score"] for c in job.get("conservation", [])}
+
+        # Write query structure with B-factors set to conservation scores
+        query_pdb = job.get("query_pdb", "")
+        if conservation:
+            query_pdb = set_bfactors_for_conservation(query_pdb, conservation, chain)
+
+        query_path = os.path.join(tmpdir, f"{pdb_id}_query.pdb")
+        with open(query_path, 'w') as f:
+            f.write(query_pdb)
+
+        # Write ligands
+        ligand_paths = []
+        for i, lig in enumerate(job.get("ligand_pdbs", [])):
+            lig_path = os.path.join(tmpdir, f"ligand_{i}_{lig['name']}_{lig['source']}.pdb")
+            with open(lig_path, 'w') as f:
+                f.write(lig.get('pdb', ''))
+            ligand_paths.append((lig_path, lig['name'], lig['source']))
+
+        # Create PyMOL script
+        pse_path = os.path.join(tmpdir, f"{pdb_id}_pocket_miner.pse")
+
+        script = f'''
+from pymol import cmd, util
+
+# Load query structure
+cmd.load("{query_path}", "query_{pdb_id}")
+
+# Set up conservation coloring (B-factor spectrum: blue=low, white=mid, red=high)
+cmd.show("cartoon", "query_{pdb_id}")
+cmd.spectrum("b", "blue_white_red", "query_{pdb_id} and name CA", minimum=0, maximum=100)
+
+# Color cartoon by B-factor (conservation)
+cmd.set("cartoon_color", "spectrum", "query_{pdb_id}")
+util.cbaw("query_{pdb_id}")  # Color by atom type for sticks
+cmd.spectrum("b", "blue_white_red", "query_{pdb_id}", minimum=0, maximum=100)
+
+# Create groups
+cmd.group("protein", "query_{pdb_id}")
+'''
+
+        # Add ligands
+        if ligand_paths:
+            script += '\n# Load ligands\n'
+            for lig_path, lig_name, lig_source in ligand_paths:
+                obj_name = f"lig_{lig_name}_{lig_source}".replace('-', '_')
+                script += f'cmd.load("{lig_path}", "{obj_name}")\n'
+                script += f'cmd.show("sticks", "{obj_name}")\n'
+                script += f'util.cbag("{obj_name}")  # Color by atom type\n'
+
+            script += '\n# Group all ligands\n'
+            ligand_names = [f"lig_{l[1]}_{l[2]}".replace('-', '_') for l in ligand_paths]
+            script += f'cmd.group("ligands", "{" ".join(ligand_names)}")\n'
+
+        # Finalize visualization
+        script += f'''
+# Set view and style
+cmd.bg_color("white")
+cmd.set("ray_shadow", 0)
+cmd.set("depth_cue", 0)
+cmd.set("cartoon_fancy_helices", 1)
+cmd.set("cartoon_flat_sheets", 1)
+cmd.set("stick_radius", 0.15)
+cmd.set("sphere_scale", 0.2)
+
+# Create surface (hidden by default)
+cmd.create("protein_surface", "query_{pdb_id}")
+cmd.show("surface", "protein_surface")
+cmd.set("surface_color", "white", "protein_surface")
+cmd.set("transparency", 0.7, "protein_surface")
+cmd.disable("protein_surface")
+
+# Center view
+cmd.zoom("query_{pdb_id}")
+
+# Save session
+cmd.save("{pse_path}")
+cmd.quit()
+'''
+
+        script_path = os.path.join(tmpdir, "create_session.py")
+        with open(script_path, 'w') as f:
+            f.write(script)
+
+        # Run PyMOL to create session
+        pymol_paths = ["pymol", "/opt/homebrew/bin/pymol", "/usr/local/bin/pymol",
+                       "/Applications/PyMOL.app/Contents/MacOS/PyMOL"]
+
+        pymol_cmd = None
+        for path in pymol_paths:
+            try:
+                result = subprocess.run([path, "--version"], capture_output=True, timeout=5)
+                pymol_cmd = path
+                break
+            except:
+                continue
+
+        if not pymol_cmd:
+            return jsonify({"error": "PyMOL not available on server"}), 500
+
+        try:
+            result = subprocess.run(
+                [pymol_cmd, "-cq", script_path],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=tmpdir
+            )
+
+            if result.returncode != 0:
+                logger.error(f"PyMOL error: {result.stderr}")
+                return jsonify({"error": f"PyMOL failed: {result.stderr}"}), 500
+
+            if not os.path.exists(pse_path):
+                return jsonify({"error": "Failed to create PyMOL session"}), 500
+
+            # Copy to results folder for serving
+            output_path = RESULTS_FOLDER / job_id / f"{pdb_id}_pocket_miner.pse"
+            import shutil
+            shutil.copy(pse_path, output_path)
+
+            return send_file(
+                output_path,
+                as_attachment=True,
+                download_name=f"{pdb_id}_pocket_miner.pse",
+                mimetype='application/octet-stream'
+            )
+
+        except subprocess.TimeoutExpired:
+            return jsonify({"error": "PyMOL session creation timed out"}), 500
+        except Exception as e:
+            logger.error(f"Failed to create PyMOL session: {e}")
+            return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

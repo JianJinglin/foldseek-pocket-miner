@@ -186,6 +186,12 @@
                             <button onclick="toggleLigands()" id="btn-ligands" class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200">Ligands ON</button>
                             <button onclick="toggleSurface()" id="btn-surface" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Surface OFF</button>
                             <button onclick="resetView()" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Reset View</button>
+                            <button onclick="downloadPSE()" id="btn-download-pse" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                PyMOL Session
+                            </button>
                         </div>
                         <!-- Conservation Legend -->
                         <div class="mt-3 conservation-legend text-xs text-gray-600">
@@ -638,6 +644,51 @@
             if (idx < ligandModels.length) {
                 viewer.zoomTo({model: ligandModels[idx]});
                 viewer.render();
+            }
+        }
+
+        // Download PyMOL session
+        async function downloadPSE() {
+            if (!currentJobId) {
+                showError('No results available to download');
+                return;
+            }
+
+            const btn = document.getElementById('btn-download-pse');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `
+                <svg class="w-4 h-4 spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating...
+            `;
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/download_pse/${currentJobId}`);
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to generate PyMOL session');
+                }
+
+                // Download the file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${document.getElementById('pdb-id').value}_pocket_miner.pse`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
 

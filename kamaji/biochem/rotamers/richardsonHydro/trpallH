@@ -1,0 +1,172 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=66, rem=0, adj=0
+USER  MOD reduceV2.12.3 removed 70 hydrogens (0 hets)
+ATOM      1  C   TRP     1       0.551  -1.198  -0.766  1.00 32.00      auto
+ATOM      2  N   TRP     1      -1.458   0.000   0.000  1.00 32.00      auto
+ATOM      3  O   TRP     1       0.024  -2.306  -0.667  1.00 32.00      auto
+ATOM      4  CA  TRP     1       0.000   0.000   0.000  1.00 32.00      auto
+ATOM      5  CB  TRP     1       0.536   0.000   1.433  1.00 32.00      auto
+ATOM      6  CD1 TRP     1      -0.857   1.430   3.038  1.00 32.00      auto
+ATOM      7  CD2 TRP     1       0.936   2.475   2.192  1.00 32.00      auto
+ATOM      8  CE2 TRP     1       0.261   3.364   3.052  1.00 32.00      auto
+ATOM      9  CE3 TRP     1       2.095   2.910   1.544  1.00 32.00      auto
+ATOM     10  NE1 TRP     1      -0.833   2.702   3.557  1.00 32.00      auto
+ATOM     11  CG  TRP     1       0.203   1.244   2.198  1.00 32.00      auto
+ATOM     12  CH2 TRP     1       1.845   5.067   2.635  1.00 32.00      auto
+ATOM     13  CZ2 TRP     1       0.706   4.665   3.282  1.00 32.00      auto
+ATOM     14  CZ3 TRP     1       2.536   4.200   1.771  1.00 32.00      auto
+ATOM     15 1H   TRP     1      -1.792   0.794   0.508  1.00 32.00      auto H + new
+ATOM     16 2H   TRP     1      -1.792   0.043  -0.942  1.00 32.00      auto H + new
+ATOM     17 3H   TRP     1      -1.792  -0.837   0.434  1.00 32.00      auto H + new
+ATOM     18  HA  TRP     1       0.336   0.917  -0.507  1.00 32.00      auto H   new
+ATOM     19 1HB  TRP     1       0.127  -0.870   1.968  1.00 32.00      auto H   new
+ATOM     20 2HB  TRP     1       1.629  -0.123   1.407  1.00 32.00      auto H   new
+ATOM     21  HD1 TRP     1      -1.620   0.671   3.266  1.00 32.00      auto H   new
+ATOM     22  HE1 TRP     1      -1.501   3.083   4.196  1.00 32.00      auto H   new
+ATOM     23  HE3 TRP     1       2.645   2.240   0.867  1.00 32.00      auto H   new
+ATOM     24  HZ2 TRP     1       0.163   5.343   3.957  1.00 32.00      auto H   new
+ATOM     25  HZ3 TRP     1       3.446   4.555   1.265  1.00 32.00      auto H   new
+ATOM     26  HH2 TRP     1       2.225   6.087   2.795  1.00 32.00      auto H   new
+TER      26              0
+ATOM     27  C   TRP     2       0.551  -1.198  -0.766  1.00  8.00      auto
+ATOM     28  N   TRP     2      -1.458   0.000   0.000  1.00  8.00      auto
+ATOM     29  O   TRP     2       0.024  -2.306  -0.667  1.00  8.00      auto
+ATOM     30  CA  TRP     2       0.000   0.000   0.000  1.00  8.00      auto
+ATOM     31  CB  TRP     2       0.536   0.000   1.433  1.00  8.00      auto
+ATOM     32  CD1 TRP     2      -0.438   2.352   1.722  1.00  8.00      auto
+ATOM     33  CD2 TRP     2       0.493   1.506   3.577  1.00  8.00      auto
+ATOM     34  CE2 TRP     2       0.000   2.793   3.867  1.00  8.00      auto
+ATOM     35  CE3 TRP     2       1.121   0.777   4.589  1.00  8.00      auto
+ATOM     36  NE1 TRP     2      -0.565   3.290   2.717  1.00  8.00      auto
+ATOM     37  CG  TRP     2       0.203   1.244   2.198  1.00  8.00      auto
+ATOM     38  CH2 TRP     2       0.734   2.635   6.107  1.00  8.00      auto
+ATOM     39  CZ2 TRP     2       0.114   3.369   5.131  1.00  8.00      auto
+ATOM     40  CZ3 TRP     2       1.235   1.349   5.842  1.00  8.00      auto
+ATOM     41  HA  TRP     2       0.336   0.917  -0.507  1.00  8.00      auto H   new
+ATOM     42 1HB  TRP     2       0.127  -0.870   1.968  1.00  8.00      auto H   new
+ATOM     43 2HB  TRP     2       1.629  -0.123   1.407  1.00  8.00      auto H   new
+ATOM     44  HD1 TRP     2      -0.800   2.475   0.691  1.00  8.00      auto H   new
+ATOM     45  HE1 TRP     2      -0.997   4.187   2.621  1.00  8.00      auto H   new
+ATOM     46  HE3 TRP     2       1.516  -0.231   4.393  1.00  8.00      auto H   new
+ATOM     47  HZ2 TRP     2      -0.279   4.375   5.337  1.00  8.00      auto H   new
+ATOM     48  HZ3 TRP     2       1.728   0.786   6.648  1.00  8.00      auto H   new
+ATOM     49  HH2 TRP     2       0.842   3.060   7.116  1.00  8.00      auto H   new
+TER      49              0
+ATOM     50  C   TRP     3       0.551  -1.198  -0.766  1.00  5.00      auto
+ATOM     51  N   TRP     3      -1.458   0.000   0.000  1.00  5.00      auto
+ATOM     52  O   TRP     3       0.024  -2.306  -0.667  1.00  5.00      auto
+ATOM     53  CA  TRP     3       0.000   0.000   0.000  1.00  5.00      auto
+ATOM     54  CB  TRP     3       0.536   0.000   1.433  1.00  5.00      auto
+ATOM     55  CD1 TRP     3       0.947   2.386   2.269  1.00  5.00      auto
+ATOM     56  CD2 TRP     3      -0.964   1.470   2.999  1.00  5.00      auto
+ATOM     57  CE2 TRP     3      -0.858   2.772   3.527  1.00  5.00      auto
+ATOM     58  CE3 TRP     3      -2.083   0.698   3.320  1.00  5.00      auto
+ATOM     59  NE1 TRP     3       0.318   3.313   3.066  1.00  5.00      auto
+ATOM     60  CG  TRP     3       0.203   1.244   2.198  1.00  5.00      auto
+ATOM     61  CH2 TRP     3      -2.920   2.545   4.659  1.00  5.00      auto
+ATOM     62  CZ2 TRP     3      -1.832   3.322   4.360  1.00  5.00      auto
+ATOM     63  CZ3 TRP     3      -3.048   1.243   4.147  1.00  5.00      auto
+ATOM     64  HA  TRP     3       0.336   0.917  -0.507  1.00  5.00      auto H   new
+ATOM     65 1HB  TRP     3       0.127  -0.870   1.968  1.00  5.00      auto H   new
+ATOM     66 2HB  TRP     3       1.629  -0.123   1.407  1.00  5.00      auto H   new
+ATOM     67  HD1 TRP     3       1.911   2.542   1.762  1.00  5.00      auto H   new
+ATOM     68  HE1 TRP     3       0.660   4.229   3.276  1.00  5.00      auto H   new
+ATOM     69  HE3 TRP     3      -2.194  -0.322   2.923  1.00  5.00      auto H   new
+ATOM     70  HZ2 TRP     3      -1.730   4.341   4.762  1.00  5.00      auto H   new
+ATOM     71  HZ3 TRP     3      -3.933   0.645   4.409  1.00  5.00      auto H   new
+ATOM     72  HH2 TRP     3      -3.708   2.948   5.312  1.00  5.00      auto H   new
+TER      72              0
+ATOM     73  C   TRP     4       0.551  -1.198  -0.766  1.00 18.00      auto
+ATOM     74  N   TRP     4      -1.458   0.000   0.000  1.00 18.00      auto
+ATOM     75  O   TRP     4       0.024  -2.306  -0.667  1.00 18.00      auto
+ATOM     76  CA  TRP     4       0.000   0.000   0.000  1.00 18.00      auto
+ATOM     77  CB  TRP     4       0.536   0.000   1.433  1.00 18.00      auto
+ATOM     78  CD1 TRP     4       2.794   1.201   1.579  1.00 18.00      auto
+ATOM     79  CD2 TRP     4       2.940  -1.035   1.540  1.00 18.00      auto
+ATOM     80  CE2 TRP     4       4.241  -0.499   1.621  1.00 18.00      auto
+ATOM     81  CE3 TRP     4       2.781  -2.422   1.503  1.00 18.00      auto
+ATOM     82  NE1 TRP     4       4.126   0.870   1.643  1.00 18.00      auto
+ATOM     83  CG  TRP     4       2.030   0.072   1.514  1.00 18.00      auto
+ATOM     84  CH2 TRP     4       5.196  -2.661   1.627  1.00 18.00      auto
+ATOM     85  CZ2 TRP     4       5.379  -1.304   1.665  1.00 18.00      auto
+ATOM     86  CZ3 TRP     4       3.909  -3.219   1.546  1.00 18.00      auto
+ATOM     87  HA  TRP     4       0.336   0.917  -0.507  1.00 18.00      auto H   new
+ATOM     88 1HB  TRP     4       0.106   0.854   1.976  1.00 18.00      auto H   new
+ATOM     89 2HB  TRP     4       0.193  -0.912   1.944  1.00 18.00      auto H   new
+ATOM     90  HD1 TRP     4       2.400   2.228   1.580  1.00 18.00      auto H   new
+ATOM     91  HE1 TRP     4       4.886   1.518   1.697  1.00 18.00      auto H   new
+ATOM     92  HE3 TRP     4       1.779  -2.871   1.441  1.00 18.00      auto H   new
+ATOM     93  HZ2 TRP     4       6.386  -0.866   1.728  1.00 18.00      auto H   new
+ATOM     94  HZ3 TRP     4       3.797  -4.313   1.516  1.00 18.00      auto H   new
+ATOM     95  HH2 TRP     4       6.072  -3.326   1.660  1.00 18.00      auto H   new
+TER      95              0
+ATOM     96  C   TRP     5       0.551  -1.198  -0.766  1.00 16.00      auto
+ATOM     97  N   TRP     5      -1.458   0.000   0.000  1.00 16.00      auto
+ATOM     98  O   TRP     5       0.024  -2.306  -0.667  1.00 16.00      auto
+ATOM     99  CA  TRP     5       0.000   0.000   0.000  1.00 16.00      auto
+ATOM    100  CB  TRP     5       0.536   0.000   1.433  1.00 16.00      auto
+ATOM    101  CD1 TRP     5       2.884  -0.948   1.821  1.00 16.00      auto
+ATOM    102  CD2 TRP     5       2.846   1.228   1.283  1.00 16.00      auto
+ATOM    103  CE2 TRP     5       4.185   0.833   1.469  1.00 16.00      auto
+ATOM    104  CE3 TRP     5       2.572   2.554   0.939  1.00 16.00      auto
+ATOM    105  NE1 TRP     5       4.183  -0.502   1.797  1.00 16.00      auto
+ATOM    106  CG  TRP     5       2.030   0.072   1.514  1.00 16.00      auto
+ATOM    107  CH2 TRP     5       4.958   3.013   0.983  1.00 16.00      auto
+ATOM    108  CZ2 TRP     5       5.252   1.718   1.322  1.00 16.00      auto
+ATOM    109  CZ3 TRP     5       3.630   3.431   0.794  1.00 16.00      auto
+ATOM    110  HA  TRP     5       0.336   0.917  -0.507  1.00 16.00      auto H   new
+ATOM    111 1HB  TRP     5       0.106   0.854   1.976  1.00 16.00      auto H   new
+ATOM    112 2HB  TRP     5       0.193  -0.912   1.944  1.00 16.00      auto H   new
+ATOM    113  HD1 TRP     5       2.576  -1.978   2.054  1.00 16.00      auto H   new
+ATOM    114  HE1 TRP     5       4.993  -1.057   1.987  1.00 16.00      auto H   new
+ATOM    115  HE3 TRP     5       1.537   2.893   0.787  1.00 16.00      auto H   new
+ATOM    116  HZ2 TRP     5       6.291   1.389   1.472  1.00 16.00      auto H   new
+ATOM    117  HZ3 TRP     5       3.428   4.478   0.525  1.00 16.00      auto H   new
+ATOM    118  HH2 TRP     5       5.776   3.738   0.857  1.00 16.00      auto H   new
+TER     118              0
+ATOM    119  C   TRP     6       0.551  -1.198  -0.766  1.00  6.00      auto
+ATOM    120  N   TRP     6      -1.458   0.000   0.000  1.00  6.00      auto
+ATOM    121  O   TRP     6       0.024  -2.306  -0.667  1.00  6.00      auto
+ATOM    122  CA  TRP     6       0.000   0.000   0.000  1.00  6.00      auto
+ATOM    123  CB  TRP     6       0.536   0.000   1.433  1.00  6.00      auto
+ATOM    124  CD1 TRP     6       0.830  -2.387   2.313  1.00  6.00      auto
+ATOM    125  CD2 TRP     6      -1.033  -1.365   3.026  1.00  6.00      auto
+ATOM    126  CE2 TRP     6      -0.991  -2.661   3.577  1.00  6.00      auto
+ATOM    127  CE3 TRP     6      -2.113  -0.534   3.333  1.00  6.00      auto
+ATOM    128  NE1 TRP     6       0.158  -3.267   3.127  1.00  6.00      auto
+ATOM    129  CG  TRP     6       0.142  -1.212   2.220  1.00  6.00      auto
+ATOM    130  CH2 TRP     6      -3.037  -2.312   4.706  1.00  6.00      auto
+ATOM    131  CZ2 TRP     6      -1.989  -3.147   4.421  1.00  6.00      auto
+ATOM    132  CZ3 TRP     6      -3.102  -1.016   4.168  1.00  6.00      auto
+ATOM    133  HA  TRP     6       0.336   0.917  -0.507  1.00  6.00      auto H   new
+ATOM    134 1HB  TRP     6       1.634   0.068   1.405  1.00  6.00      auto H   new
+ATOM    135 2HB  TRP     6       0.171   0.899   1.952  1.00  6.00      auto H   new
+ATOM    136  HD1 TRP     6       1.785  -2.599   1.809  1.00  6.00      auto H   new
+ATOM    137  HE1 TRP     6       0.455  -4.194   3.354  1.00  6.00      auto H   new
+ATOM    138  HE3 TRP     6      -2.175   0.483   2.918  1.00  6.00      auto H   new
+ATOM    139  HZ2 TRP     6      -1.937  -4.162   4.842  1.00  6.00      auto H   new
+ATOM    140  HZ3 TRP     6      -3.958  -0.372   4.417  1.00  6.00      auto H   new
+ATOM    141  HH2 TRP     6      -3.842  -2.663   5.368  1.00  6.00      auto H   new
+TER     141              0
+ATOM    142  C   TRP     7       0.551  -1.198  -0.766  1.00 11.00      auto
+ATOM    143  N   TRP     7      -1.458   0.000   0.000  1.00 11.00      auto
+ATOM    144  O   TRP     7       0.024  -2.306  -0.667  1.00 11.00      auto
+ATOM    145  CA  TRP     7       0.000   0.000   0.000  1.00 11.00      auto
+ATOM    146  CB  TRP     7       0.536   0.000   1.433  1.00 11.00      auto
+ATOM    147  CD1 TRP     7      -0.976  -1.363   2.988  1.00 11.00      auto
+ATOM    148  CD2 TRP     7       0.868  -2.445   2.314  1.00 11.00      auto
+ATOM    149  CE2 TRP     7       0.128  -3.297   3.158  1.00 11.00      auto
+ATOM    150  CE3 TRP     7       2.067  -2.907   1.768  1.00 11.00      auto
+ATOM    151  NE1 TRP     7      -0.995  -2.613   3.557  1.00 11.00      auto
+ATOM    152  CG  TRP     7       0.142  -1.212   2.220  1.00 11.00      auto
+ATOM    153  CH2 TRP     7       1.728  -5.019   2.921  1.00 11.00      auto
+ATOM    154  CZ2 TRP     7       0.549  -4.589   3.469  1.00 11.00      auto
+ATOM    155  CZ3 TRP     7       2.484  -4.188   2.077  1.00 11.00      auto
+ATOM    156  HA  TRP     7       0.336   0.917  -0.507  1.00 11.00      auto H   new
+ATOM    157 1HB  TRP     7       1.634   0.068   1.405  1.00 11.00      auto H   new
+ATOM    158 2HB  TRP     7       0.171   0.899   1.952  1.00 11.00      auto H   new
+ATOM    159  HD1 TRP     7      -1.750  -0.595   3.131  1.00 11.00      auto H   new
+ATOM    160  HE1 TRP     7      -1.708  -2.967   4.162  1.00 11.00      auto H   new
+ATOM    161  HE3 TRP     7       2.667  -2.265   1.106  1.00 11.00      auto H   new
+ATOM    162  HZ2 TRP     7      -0.044  -5.239   4.130  1.00 11.00      auto H   new
+ATOM    163  HZ3 TRP     7       3.427  -4.565   1.654  1.00 11.00      auto H   new
+ATOM    164  HH2 TRP     7       2.090  -6.033   3.146  1.00 11.00      auto H   new

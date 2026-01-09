@@ -275,7 +275,10 @@
                 <div class="bg-white rounded-lg shadow">
                     <div class="p-4 border-b">
                         <h3 class="font-semibold">Ligand Pharmacophore</h3>
-                        <p class="text-sm text-gray-500">Ligands grouped by chemical category (Kamaji-style)</p>
+                        <p class="text-sm text-gray-500">
+                            Ligands grouped by chemical category
+                            <span id="kamaji-indicator" class="hidden ml-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Kamaji</span>
+                        </p>
                         <div class="flex gap-2 mt-2">
                             <button onclick="expandAllCategories()" class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">Expand All</button>
                             <button onclick="collapseAllCategories()" class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">Collapse All</button>
@@ -389,17 +392,37 @@
         let excludedSpecies = new Set();
         let allHits = [];
 
-        // Category colors
+        // Category colors - aligned with Kamaji types
         const categoryColors = {
+            // Kamaji categories
+            'ligand': '#FF6B6B',         // Small molecules (red)
+            'cofactor': '#4ECDC4',        // Cofactors (teal)
+            'glyco': '#45B7D1',           // Carbohydrates (blue)
+            'metal_catalytic': '#DDA0DD', // Catalytic metals (plum)
+            'metal': '#BB8FCE',           // Metals (purple)
+            'modifier': '#96CEB4',        // Modifiers (green)
+            'additive': '#FFEAA7',        // Additives (yellow)
+            'salt': '#98D8C8',            // Salts (mint)
+            // Fallback categories (for when Kamaji is not available)
             'small_molecule': '#FF6B6B',
             'nucleotide': '#4ECDC4',
             'saccharide': '#45B7D1',
             'lipid': '#96CEB4',
-            'peptide': '#FFEAA7',
+            'peptide': '#F7DC6F',
             'metal_complex': '#DDA0DD',
         };
 
         const categoryNames = {
+            // Kamaji categories
+            'ligand': 'Small Molecules',
+            'cofactor': 'Cofactors (ATP, NAD, FAD, Heme)',
+            'glyco': 'Carbohydrates',
+            'metal_catalytic': 'Catalytic Metals',
+            'metal': 'Metals',
+            'modifier': 'Modifiers',
+            'additive': 'Additives (GOL, PEG, etc.)',
+            'salt': 'Salts',
+            // Fallback categories
             'small_molecule': 'Small Molecules',
             'nucleotide': 'Nucleotides & Nucleic Acids',
             'saccharide': 'Saccharides',
@@ -567,8 +590,16 @@
             // Populate species filter checkboxes
             populateSpeciesFilter(speciesGroups);
 
-            // Populate ligand categories (Kamaji-style)
+            // Populate ligand categories (using Kamaji if available)
             populateLigandCategories(ligandClusters, data.ligands);
+
+            // Show/hide Kamaji indicator
+            const kamajiIndicator = document.getElementById('kamaji-indicator');
+            if (data.kamaji_available) {
+                kamajiIndicator.classList.remove('hidden');
+            } else {
+                kamajiIndicator.classList.add('hidden');
+            }
 
             // Display conservation details
             const consDetails = document.getElementById('conservation-details');

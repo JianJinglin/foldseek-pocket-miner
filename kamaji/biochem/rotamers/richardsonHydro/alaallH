@@ -1,0 +1,14 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=7, rem=0, adj=0
+USER  MOD reduceV2.12.3 removed 5 hydrogens (0 hets)
+ATOM      1  C   ALA     1       0.551  -1.198  -0.766  1.00  0.00      auto
+ATOM      2  N   ALA     1      -1.458   0.000   0.000  1.00  0.00      auto
+ATOM      3  O   ALA     1       0.024  -2.306  -0.667  1.00  0.00      auto
+ATOM      4  CA  ALA     1       0.000   0.000   0.000  1.00  0.00      auto
+ATOM      5  CB  ALA     1       0.540   0.001   1.438  1.00  0.00      auto
+ATOM      6 1H   ALA     1      -1.792   0.794   0.508  1.00  0.00      auto H + new
+ATOM      7 2H   ALA     1      -1.792   0.043  -0.942  1.00  0.00      auto H + new
+ATOM      8 3H   ALA     1      -1.792  -0.837   0.434  1.00  0.00      auto H + new
+ATOM      9  HA  ALA     1       0.335   0.917  -0.507  1.00  0.00      auto H   new
+ATOM     10 1HB  ALA     1       1.640   0.001   1.417  1.00  0.00      auto H   new
+ATOM     11 2HB  ALA     1       0.184   0.899   1.963  1.00  0.00      auto H   new
+ATOM     12 3HB  ALA     1       0.184  -0.897   1.965  1.00  0.00      auto H   new

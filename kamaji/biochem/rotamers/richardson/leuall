@@ -1,0 +1,37 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=43, rem=0, adj=0
+USER  MOD reduceV2.12.3 removed 44 hydrogens (0 hets)
+ATOM      1  C   LEU     1       0.551  -1.198  -0.766  1.00 59.00      auto
+ATOM      2  N   LEU     1      -1.458   0.000   0.000  1.00 59.00      auto
+ATOM      3  O   LEU     1       0.024  -2.306  -0.667  1.00 59.00      auto
+ATOM      4  CA  LEU     1       0.000   0.000   0.000  1.00 59.00      auto
+ATOM      5  CB  LEU     1       0.536   0.000   1.433  1.00 59.00      auto
+ATOM      6  CD1 LEU     1       0.690   1.049   3.708  1.00 59.00      auto
+ATOM      7  CD2 LEU     1       0.943   2.461   1.705  1.00 59.00      auto
+ATOM      8  CG  LEU     1       0.230   1.243   2.271  1.00 59.00      auto
+TER      21              0
+ATOM     22  C   LEU     2       0.551  -1.198  -0.766  1.00  2.00      auto
+ATOM     23  N   LEU     2      -1.458   0.000   0.000  1.00  2.00      auto
+ATOM     24  O   LEU     2       0.024  -2.306  -0.667  1.00  2.00      auto
+ATOM     25  CA  LEU     2       0.000   0.000   0.000  1.00  2.00      auto
+ATOM     26  CB  LEU     2       0.536   0.000   1.433  1.00  2.00      auto
+ATOM     27  CD1 LEU     2      -0.709   1.999   2.300  1.00  2.00      auto
+ATOM     28  CD2 LEU     2       1.317   1.233   3.475  1.00  2.00      auto
+ATOM     29  CG  LEU     2       0.661   1.367   2.110  1.00  2.00      auto
+TER      39              0
+ATOM     40  C   LEU     3       0.551  -1.198  -0.766  1.00 29.00      auto
+ATOM     41  N   LEU     3      -1.458   0.000   0.000  1.00 29.00      auto
+ATOM     42  O   LEU     3       0.024  -2.306  -0.667  1.00 29.00      auto
+ATOM     43  CA  LEU     3       0.000   0.000   0.000  1.00 29.00      auto
+ATOM     44  CB  LEU     3       0.536   0.000   1.433  1.00 29.00      auto
+ATOM     45  CD1 LEU     3       2.587   1.399   1.067  1.00 29.00      auto
+ATOM     46  CD2 LEU     3       2.455  -0.059   3.049  1.00 29.00      auto
+ATOM     47  CG  LEU     3       2.056   0.072   1.588  1.00 29.00      auto
+TER      57              0
+ATOM     58  C   LEU     4       0.551  -1.198  -0.766  1.00  2.00      auto
+ATOM     59  N   LEU     4      -1.458   0.000   0.000  1.00  2.00      auto
+ATOM     60  O   LEU     4       0.024  -2.306  -0.667  1.00  2.00      auto
+ATOM     61  CA  LEU     4       0.000   0.000   0.000  1.00  2.00      auto
+ATOM     62  CB  LEU     4       0.536   0.000   1.433  1.00  2.00      auto
+ATOM     63  CD1 LEU     4       2.359   0.952   2.871  1.00  2.00      auto
+ATOM     64  CD2 LEU     4       2.754  -1.153   1.653  1.00  2.00      auto
+ATOM     65  CG  LEU     4       2.046   0.191   1.592  1.00  2.00      auto

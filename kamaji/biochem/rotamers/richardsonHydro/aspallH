@@ -1,0 +1,64 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=18, rem=0, adj=0
+USER  MOD reduceV2.12.3 removed 20 hydrogens (0 hets)
+ATOM      1  C   ASP     1       0.551  -1.198  -0.766  1.00 51.00      auto
+ATOM      2  N   ASP     1      -1.458   0.000   0.000  1.00 51.00      auto
+ATOM      3  O   ASP     1       0.024  -2.306  -0.667  1.00 51.00      auto
+ATOM      4  CA  ASP     1       0.000   0.000   0.000  1.00 51.00      auto
+ATOM      5  CB  ASP     1       0.536   0.000   1.433  1.00 51.00      auto
+ATOM      6  OD1 ASP     1      -0.027   2.312   1.464  1.00 51.00      auto
+ATOM      7  OD2 ASP     1       0.419   1.350   3.388  1.00 51.00      auto
+ATOM      8  CG  ASP     1       0.292   1.315   2.147  1.00 51.00      auto
+ATOM      9 1H   ASP     1      -1.792   0.794   0.508  1.00 51.00      auto H + new
+ATOM     10 2H   ASP     1      -1.792   0.043  -0.942  1.00 51.00      auto H + new
+ATOM     11 3H   ASP     1      -1.792  -0.837   0.434  1.00 51.00      auto H + new
+ATOM     12  HA  ASP     1       0.336   0.917  -0.507  1.00 51.00      auto H   new
+ATOM     13 1HB  ASP     1       0.059  -0.814   1.999  1.00 51.00      auto H   new
+ATOM     14 2HB  ASP     1       1.616  -0.209   1.417  1.00 51.00      auto H   new
+TER      14              0
+ATOM     15  C   ASP     2       0.551  -1.198  -0.766  1.00  6.00      auto
+ATOM     16  N   ASP     2      -1.458   0.000   0.000  1.00  6.00      auto
+ATOM     17  O   ASP     2       0.024  -2.306  -0.667  1.00  6.00      auto
+ATOM     18  CA  ASP     2       0.000   0.000   0.000  1.00  6.00      auto
+ATOM     19  CB  ASP     2       0.536   0.000   1.433  1.00  6.00      auto
+ATOM     20  OD1 ASP     2       2.611   1.106   1.066  1.00  6.00      auto
+ATOM     21  OD2 ASP     2       2.674  -0.901   1.958  1.00  6.00      auto
+ATOM     22  CG  ASP     2       2.049   0.073   1.489  1.00  6.00      auto
+ATOM     23  HA  ASP     2       0.336   0.917  -0.507  1.00  6.00      auto H   new
+ATOM     24 1HB  ASP     2       0.111   0.855   1.980  1.00  6.00      auto H   new
+ATOM     25 2HB  ASP     2       0.197  -0.911   1.947  1.00  6.00      auto H   new
+TER      25              0
+ATOM     26  C   ASP     3       0.551  -1.198  -0.766  1.00 21.00      auto
+ATOM     27  N   ASP     3      -1.458   0.000   0.000  1.00 21.00      auto
+ATOM     28  O   ASP     3       0.024  -2.306  -0.667  1.00 21.00      auto
+ATOM     29  CA  ASP     3       0.000   0.000   0.000  1.00 21.00      auto
+ATOM     30  CB  ASP     3       0.536   0.000   1.433  1.00 21.00      auto
+ATOM     31  OD1 ASP     3       2.682   0.124   0.414  1.00 21.00      auto
+ATOM     32  OD2 ASP     3       2.602   0.081   2.609  1.00 21.00      auto
+ATOM     33  CG  ASP     3       2.049   0.073   1.489  1.00 21.00      auto
+ATOM     34  HA  ASP     3       0.336   0.917  -0.507  1.00 21.00      auto H   new
+ATOM     35 1HB  ASP     3       0.111   0.855   1.980  1.00 21.00      auto H   new
+ATOM     36 2HB  ASP     3       0.197  -0.911   1.947  1.00 21.00      auto H   new
+TER      36              0
+ATOM     37  C   ASP     4       0.551  -1.198  -0.766  1.00  9.00      auto
+ATOM     38  N   ASP     4      -1.458   0.000   0.000  1.00  9.00      auto
+ATOM     39  O   ASP     4       0.024  -2.306  -0.667  1.00  9.00      auto
+ATOM     40  CA  ASP     4       0.000   0.000   0.000  1.00  9.00      auto
+ATOM     41  CB  ASP     4       0.536   0.000   1.433  1.00  9.00      auto
+ATOM     42  OD1 ASP     4      -0.051  -2.301   1.581  1.00  9.00      auto
+ATOM     43  OD2 ASP     4      -0.021  -1.139   3.446  1.00  9.00      auto
+ATOM     44  CG  ASP     4       0.125  -1.235   2.209  1.00  9.00      auto
+ATOM     45  HA  ASP     4       0.336   0.917  -0.507  1.00  9.00      auto H   new
+ATOM     46 1HB  ASP     4       1.634   0.065   1.410  1.00  9.00      auto H   new
+ATOM     47 2HB  ASP     4       0.171   0.896   1.957  1.00  9.00      auto H   new
+TER      47              0
+ATOM     48  C   ASP     5       0.551  -1.198  -0.766  1.00 10.00      auto
+ATOM     49  N   ASP     5      -1.458   0.000   0.000  1.00 10.00      auto
+ATOM     50  O   ASP     5       0.024  -2.306  -0.667  1.00 10.00      auto
+ATOM     51  CA  ASP     5       0.000   0.000   0.000  1.00 10.00      auto
+ATOM     52  CB  ASP     5       0.536   0.000   1.433  1.00 10.00      auto
+ATOM     53  OD1 ASP     5      -0.727  -1.998   1.705  1.00 10.00      auto
+ATOM     54  OD2 ASP     5       0.655  -1.443   3.321  1.00 10.00      auto
+ATOM     55  CG  ASP     5       0.125  -1.235   2.209  1.00 10.00      auto
+ATOM     56  HA  ASP     5       0.336   0.917  -0.507  1.00 10.00      auto H   new
+ATOM     57 1HB  ASP     5       1.634   0.065   1.410  1.00 10.00      auto H   new
+ATOM     58 2HB  ASP     5       0.171   0.896   1.957  1.00 10.00      auto H   new

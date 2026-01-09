@@ -1,0 +1,22 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=12, rem=0, adj=0
+USER  MOD reduceV2.12.3 removed 15 hydrogens (0 hets)
+ATOM      1  C   SER     1       0.551  -1.198  -0.766  1.00 48.00      auto
+ATOM      2  N   SER     1      -1.458   0.000   0.000  1.00 48.00      auto
+ATOM      3  O   SER     1       0.024  -2.306  -0.667  1.00 48.00      auto
+ATOM      4  CA  SER     1       0.000   0.000   0.000  1.00 48.00      auto
+ATOM      5  CB  SER     1       0.536   0.000   1.433  1.00 48.00      auto
+ATOM      6  OG  SER     1       0.133  -1.167   2.128  1.00 48.00      auto
+TER      12              0
+ATOM     13  C   SER     2       0.551  -1.198  -0.766  1.00 22.00      auto
+ATOM     14  N   SER     2      -1.458   0.000   0.000  1.00 22.00      auto
+ATOM     15  O   SER     2       0.024  -2.306  -0.667  1.00 22.00      auto
+ATOM     16  CA  SER     2       0.000   0.000   0.000  1.00 22.00      auto
+ATOM     17  CB  SER     2       0.536   0.000   1.433  1.00 22.00      auto
+ATOM     18  OG  SER     2       1.951   0.069   1.448  1.00 22.00      auto
+TER      21              0
+ATOM     22  C   SER     3       0.551  -1.198  -0.766  1.00 29.00      auto
+ATOM     23  N   SER     3      -1.458   0.000   0.000  1.00 29.00      auto
+ATOM     24  O   SER     3       0.024  -2.306  -0.667  1.00 29.00      auto
+ATOM     25  CA  SER     3       0.000   0.000   0.000  1.00 29.00      auto
+ATOM     26  CB  SER     3       0.536   0.000   1.433  1.00 29.00      auto
+ATOM     27  OG  SER     3       0.192   1.198   2.106  1.00 29.00      auto

@@ -1,0 +1,52 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=27, rem=0, adj=0
+USER  MOD reduceV2.12.3 removed 27 hydrogens (0 hets)
+ATOM      1  C   VAL     1       0.551  -1.198  -0.766  1.00 73.00      auto
+ATOM      2  N   VAL     1      -1.458   0.000   0.000  1.00 73.00      auto
+ATOM      3  O   VAL     1       0.024  -2.306  -0.667  1.00 73.00      auto
+ATOM      4  CA  VAL     1       0.000   0.000   0.000  1.00 73.00      auto
+ATOM      5  CB  VAL     1       0.564  -0.015   1.433  1.00 73.00      auto
+ATOM      6  CG1 VAL     1       2.080  -0.139   1.408  1.00 73.00      auto
+ATOM      7  CG2 VAL     1       0.199   1.269   2.162  1.00 73.00      auto
+ATOM      8 1H   VAL     1      -1.792   0.794   0.508  1.00 73.00      auto H + new
+ATOM      9 2H   VAL     1      -1.792   0.043  -0.942  1.00 73.00      auto H + new
+ATOM     10 3H   VAL     1      -1.792  -0.837   0.434  1.00 73.00      auto H + new
+ATOM     11  HA  VAL     1       0.318   0.927  -0.499  1.00 73.00      auto H   new
+ATOM     12  HB  VAL     1       0.128  -0.879   1.956  1.00 73.00      auto H   new
+ATOM     13 1HG1 VAL     1       2.465  -0.148   2.438  1.00 73.00      auto H   new
+ATOM     14 2HG1 VAL     1       2.364  -1.074   0.903  1.00 73.00      auto H   new
+ATOM     15 3HG1 VAL     1       2.509   0.715   0.864  1.00 73.00      auto H   new
+ATOM     16 1HG2 VAL     1       0.609   1.241   3.182  1.00 73.00      auto H   new
+ATOM     17 2HG2 VAL     1       0.619   2.130   1.622  1.00 73.00      auto H   new
+ATOM     18 3HG2 VAL     1      -0.896   1.366   2.210  1.00 73.00      auto H   new
+TER      18              0
+ATOM     19  C   VAL     2       0.551  -1.198  -0.766  1.00 20.00      auto
+ATOM     20  N   VAL     2      -1.458   0.000   0.000  1.00 20.00      auto
+ATOM     21  O   VAL     2       0.024  -2.306  -0.667  1.00 20.00      auto
+ATOM     22  CA  VAL     2       0.000   0.000   0.000  1.00 20.00      auto
+ATOM     23  CB  VAL     2       0.564  -0.015   1.433  1.00 20.00      auto
+ATOM     24  CG1 VAL     2       0.096   1.211   2.203  1.00 20.00      auto
+ATOM     25  CG2 VAL     2       0.096  -1.257   2.176  1.00 20.00      auto
+ATOM     26  HA  VAL     2       0.318   0.927  -0.499  1.00 20.00      auto H   new
+ATOM     27  HB  VAL     2       1.662  -0.014   1.361  1.00 20.00      auto H   new
+ATOM     28 1HG1 VAL     2       0.508   1.183   3.223  1.00 20.00      auto H   new
+ATOM     29 2HG1 VAL     2       0.444   2.121   1.692  1.00 20.00      auto H   new
+ATOM     30 3HG1 VAL     2      -1.003   1.216   2.252  1.00 20.00      auto H   new
+ATOM     31 1HG2 VAL     2       0.508  -1.251   3.196  1.00 20.00      auto H   new
+ATOM     32 2HG2 VAL     2      -1.003  -1.264   2.224  1.00 20.00      auto H   new
+ATOM     33 3HG2 VAL     2       0.445  -2.155   1.645  1.00 20.00      auto H   new
+TER      33              0
+ATOM     34  C   VAL     3       0.551  -1.198  -0.766  1.00  6.00      auto
+ATOM     35  N   VAL     3      -1.458   0.000   0.000  1.00  6.00      auto
+ATOM     36  O   VAL     3       0.024  -2.306  -0.667  1.00  6.00      auto
+ATOM     37  CA  VAL     3       0.000   0.000   0.000  1.00  6.00      auto
+ATOM     38  CB  VAL     3       0.564  -0.015   1.433  1.00  6.00      auto
+ATOM     39  CG1 VAL     3       0.157  -1.292   2.152  1.00  6.00      auto
+ATOM     40  CG2 VAL     3       2.083   0.060   1.408  1.00  6.00      auto
+ATOM     41  HA  VAL     3       0.318   0.927  -0.499  1.00  6.00      auto H   new
+ATOM     42  HB  VAL     3       0.156   0.858   1.963  1.00  6.00      auto H   new
+ATOM     43 1HG1 VAL     3       0.568  -1.286   3.172  1.00  6.00      auto H   new
+ATOM     44 2HG1 VAL     3      -0.940  -1.353   2.199  1.00  6.00      auto H   new
+ATOM     45 3HG1 VAL     3       0.549  -2.162   1.605  1.00  6.00      auto H   new
+ATOM     46 1HG2 VAL     3       2.468   0.048   2.438  1.00  6.00      auto H   new
+ATOM     47 2HG2 VAL     3       2.484  -0.803   0.857  1.00  6.00      auto H   new
+ATOM     48 3HG2 VAL     3       2.397   0.990   0.910  1.00  6.00      auto H   new

@@ -1,0 +1,22 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=12, rem=0, adj=0
+USER  MOD reduceV2.12.3 removed 15 hydrogens (0 hets)
+ATOM      1  C   CYS     1       0.551  -1.198  -0.766  1.00 50.00      auto
+ATOM      2  N   CYS     1      -1.458   0.000   0.000  1.00 50.00      auto
+ATOM      3  O   CYS     1       0.024  -2.306  -0.667  1.00 50.00      auto
+ATOM      4  CA  CYS     1       0.000   0.000   0.000  1.00 50.00      auto
+ATOM      5  CB  CYS     1       0.536   0.000   1.433  1.00 50.00      auto
+ATOM      6  SG  CYS     1       0.143   1.504   2.384  1.00 50.00      auto
+TER      12              0
+ATOM     13  C   CYS     2       0.551  -1.198  -0.766  1.00 23.00      auto
+ATOM     14  N   CYS     2      -1.458   0.000   0.000  1.00 23.00      auto
+ATOM     15  O   CYS     2       0.024  -2.306  -0.667  1.00 23.00      auto
+ATOM     16  CA  CYS     2       0.000   0.000   0.000  1.00 23.00      auto
+ATOM     17  CB  CYS     2       0.536   0.000   1.433  1.00 23.00      auto
+ATOM     18  SG  CYS     2       2.352   0.087   1.558  1.00 23.00      auto
+TER      21              0
+ATOM     22  C   CYS     3       0.551  -1.198  -0.766  1.00 26.00      auto
+ATOM     23  N   CYS     3      -1.458   0.000   0.000  1.00 26.00      auto
+ATOM     24  O   CYS     3       0.024  -2.306  -0.667  1.00 26.00      auto
+ATOM     25  CA  CYS     3       0.000   0.000   0.000  1.00 26.00      auto
+ATOM     26  CB  CYS     3       0.536   0.000   1.433  1.00 26.00      auto
+ATOM     27  SG  CYS     3       0.070  -1.465   2.411  1.00 26.00      auto

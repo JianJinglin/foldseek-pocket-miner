@@ -1,0 +1,71 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=38, rem=0, adj=0
+USER  MOD reduceV2.12.3 removed 42 hydrogens (0 hets)
+ATOM      1  C   GLU     1       0.551  -1.198  -0.766  1.00 33.00      auto
+ATOM      2  N   GLU     1      -1.458   0.000   0.000  1.00 33.00      auto
+ATOM      3  O   GLU     1       0.024  -2.306  -0.667  1.00 33.00      auto
+ATOM      4  CA  GLU     1       0.000   0.000   0.000  1.00 33.00      auto
+ATOM      5  CB  GLU     1       0.536   0.000   1.433  1.00 33.00      auto
+ATOM      6  CD  GLU     1       0.791   1.240   3.618  1.00 33.00      auto
+ATOM      7  OE1 GLU     1       1.225   0.156   4.060  1.00 33.00      auto
+ATOM      8  OE2 GLU     1       0.785   2.297   4.285  1.00 33.00      auto
+ATOM      9  CG  GLU     1       0.246   1.278   2.204  1.00 33.00      auto
+TER      17              0
+ATOM     18  C   GLU     2       0.551  -1.198  -0.766  1.00 13.00      auto
+ATOM     19  N   GLU     2      -1.458   0.000   0.000  1.00 13.00      auto
+ATOM     20  O   GLU     2       0.024  -2.306  -0.667  1.00 13.00      auto
+ATOM     21  CA  GLU     2       0.000   0.000   0.000  1.00 13.00      auto
+ATOM     22  CB  GLU     2       0.536   0.000   1.433  1.00 13.00      auto
+ATOM     23  CD  GLU     2       0.871   2.494   1.648  1.00 13.00      auto
+ATOM     24  OE1 GLU     2       2.045   2.399   1.235  1.00 13.00      auto
+ATOM     25  OE2 GLU     2       0.217   3.558   1.612  1.00 13.00      auto
+ATOM     26  CG  GLU     2       0.205   1.258   2.219  1.00 13.00      auto
+TER      31              0
+ATOM     32  C   GLU     3       0.551  -1.198  -0.766  1.00  6.00      auto
+ATOM     33  N   GLU     3      -1.458   0.000   0.000  1.00  6.00      auto
+ATOM     34  O   GLU     3       0.024  -2.306  -0.667  1.00  6.00      auto
+ATOM     35  CA  GLU     3       0.000   0.000   0.000  1.00  6.00      auto
+ATOM     36  CB  GLU     3       0.536   0.000   1.433  1.00  6.00      auto
+ATOM     37  CD  GLU     3      -1.166   1.196   2.866  1.00  6.00      auto
+ATOM     38  OE1 GLU     3      -1.856   0.169   2.698  1.00  6.00      auto
+ATOM     39  OE2 GLU     3      -1.548   2.175   3.541  1.00  6.00      auto
+ATOM     40  CG  GLU     3       0.205   1.258   2.219  1.00  6.00      auto
+TER      45              0
+ATOM     46  C   GLU     4       0.551  -1.198  -0.766  1.00 24.00      auto
+ATOM     47  N   GLU     4      -1.458   0.000   0.000  1.00 24.00      auto
+ATOM     48  O   GLU     4       0.024  -2.306  -0.667  1.00 24.00      auto
+ATOM     49  CA  GLU     4       0.000   0.000   0.000  1.00 24.00      auto
+ATOM     50  CB  GLU     4       0.536   0.000   1.433  1.00 24.00      auto
+ATOM     51  CD  GLU     4       2.545   0.071   2.962  1.00 24.00      auto
+ATOM     52  OE1 GLU     4       1.701   0.014   3.881  1.00 24.00      auto
+ATOM     53  OE2 GLU     4       3.776   0.126   3.167  1.00 24.00      auto
+ATOM     54  CG  GLU     4       2.051   0.072   1.529  1.00 24.00      auto
+TER      59              0
+ATOM     60  C   GLU     5       0.551  -1.198  -0.766  1.00  6.00      auto
+ATOM     61  N   GLU     5      -1.458   0.000   0.000  1.00  6.00      auto
+ATOM     62  O   GLU     5       0.024  -2.306  -0.667  1.00  6.00      auto
+ATOM     63  CA  GLU     5       0.000   0.000   0.000  1.00  6.00      auto
+ATOM     64  CB  GLU     5       0.536   0.000   1.433  1.00  6.00      auto
+ATOM     65  CD  GLU     5       2.607   1.379   0.997  1.00  6.00      auto
+ATOM     66  OE1 GLU     5       1.807   2.300   0.731  1.00  6.00      auto
+ATOM     67  OE2 GLU     5       3.843   1.482   0.848  1.00  6.00      auto
+ATOM     68  CG  GLU     5       2.051   0.072   1.529  1.00  6.00      auto
+TER      73              0
+ATOM     74  C   GLU     6       0.551  -1.198  -0.766  1.00  5.00      auto
+ATOM     75  N   GLU     6      -1.458   0.000   0.000  1.00  5.00      auto
+ATOM     76  O   GLU     6       0.024  -2.306  -0.667  1.00  5.00      auto
+ATOM     77  CA  GLU     6       0.000   0.000   0.000  1.00  5.00      auto
+ATOM     78  CB  GLU     6       0.536   0.000   1.433  1.00  5.00      auto
+ATOM     79  CD  GLU     6       0.692  -1.190   3.655  1.00  5.00      auto
+ATOM     80  OE1 GLU     6       1.663  -0.443   3.897  1.00  5.00      auto
+ATOM     81  OE2 GLU     6       0.151  -1.910   4.521  1.00  5.00      auto
+ATOM     82  CG  GLU     6       0.143  -1.225   2.243  1.00  5.00      auto
+TER      87              0
+ATOM     88  C   GLU     7       0.551  -1.198  -0.766  1.00  2.00      auto
+ATOM     89  N   GLU     7      -1.458   0.000   0.000  1.00  2.00      auto
+ATOM     90  O   GLU     7       0.024  -2.306  -0.667  1.00  2.00      auto
+ATOM     91  CA  GLU     7       0.000   0.000   0.000  1.00  2.00      auto
+ATOM     92  CB  GLU     7       0.536   0.000   1.433  1.00  2.00      auto
+ATOM     93  CD  GLU     7      -1.102  -1.424   2.726  1.00  2.00      auto
+ATOM     94  OE1 GLU     7      -1.901  -0.487   2.518  1.00  2.00      auto
+ATOM     95  OE2 GLU     7      -1.408  -2.456   3.359  1.00  2.00      auto
+ATOM     96  CG  GLU     7       0.308  -1.304   2.181  1.00  2.00      auto

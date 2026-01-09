@@ -1,0 +1,25 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=18, rem=0, adj=0
+USER  MOD reduceV2.12.3 removed 21 hydrogens (0 hets)
+ATOM      1  C   THR     1       0.551  -1.198  -0.766  1.00 49.00      auto
+ATOM      2  N   THR     1      -1.458   0.000   0.000  1.00 49.00      auto
+ATOM      3  O   THR     1       0.024  -2.306  -0.667  1.00 49.00      auto
+ATOM      4  CA  THR     1       0.000   0.000   0.000  1.00 49.00      auto
+ATOM      5  CB  THR     1       0.564  -0.015   1.433  1.00 49.00      auto
+ATOM      6  CG2 THR     1       0.057   1.185   2.218  1.00 49.00      auto
+ATOM      7  OG1 THR     1       0.150  -1.214   2.100  1.00 49.00      auto
+TER      15              0
+ATOM     16  C   THR     2       0.551  -1.198  -0.766  1.00  7.00      auto
+ATOM     17  N   THR     2      -1.458   0.000   0.000  1.00  7.00      auto
+ATOM     18  O   THR     2       0.024  -2.306  -0.667  1.00  7.00      auto
+ATOM     19  CA  THR     2       0.000   0.000   0.000  1.00  7.00      auto
+ATOM     20  CB  THR     2       0.564  -0.015   1.433  1.00  7.00      auto
+ATOM     21  CG2 THR     2       0.199  -1.314   2.136  1.00  7.00      auto
+ATOM     22  OG1 THR     2       1.992   0.103   1.389  1.00  7.00      auto
+TER      27              0
+ATOM     28  C   THR     3       0.551  -1.198  -0.766  1.00 43.00      auto
+ATOM     29  N   THR     3      -1.458   0.000   0.000  1.00 43.00      auto
+ATOM     30  O   THR     3       0.024  -2.306  -0.667  1.00 43.00      auto
+ATOM     31  CA  THR     3       0.000   0.000   0.000  1.00 43.00      auto
+ATOM     32  CB  THR     3       0.564  -0.015   1.433  1.00 43.00      auto
+ATOM     33  CG2 THR     3       2.080  -0.139   1.408  1.00 43.00      auto
+ATOM     34  OG1 THR     3       0.209   1.202   2.102  1.00 43.00      auto

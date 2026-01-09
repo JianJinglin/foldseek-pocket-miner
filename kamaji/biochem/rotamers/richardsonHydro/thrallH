@@ -1,0 +1,43 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=18, rem=0, adj=0
+USER  MOD reduceV2.12.3 removed 21 hydrogens (0 hets)
+ATOM      1  C   THR     1       0.551  -1.198  -0.766  1.00 49.00      auto
+ATOM      2  N   THR     1      -1.458   0.000   0.000  1.00 49.00      auto
+ATOM      3  O   THR     1       0.024  -2.306  -0.667  1.00 49.00      auto
+ATOM      4  CA  THR     1       0.000   0.000   0.000  1.00 49.00      auto
+ATOM      5  CB  THR     1       0.564  -0.015   1.433  1.00 49.00      auto
+ATOM      6  CG2 THR     1       0.057   1.185   2.218  1.00 49.00      auto
+ATOM      7  OG1 THR     1       0.150  -1.214   2.100  1.00 49.00      auto
+ATOM      8 1H   THR     1      -1.792   0.794   0.508  1.00 49.00      auto H + new
+ATOM      9 2H   THR     1      -1.792   0.043  -0.942  1.00 49.00      auto H + new
+ATOM     10 3H   THR     1      -1.792  -0.837   0.434  1.00 49.00      auto H + new
+ATOM     11  HA  THR     1       0.318   0.927  -0.499  1.00 49.00      auto H   new
+ATOM     12  HB  THR     1       1.662   0.027   1.376  1.00 49.00      auto H   new
+ATOM     13 1HG2 THR     1       0.469   1.158   3.237  1.00 49.00      auto H   new
+ATOM     14 2HG2 THR     1       0.376   2.112   1.719  1.00 49.00      auto H   new
+ATOM     15 3HG2 THR     1      -1.042   1.155   2.266  1.00 49.00      auto H   new
+TER      15              0
+ATOM     16  C   THR     2       0.551  -1.198  -0.766  1.00  7.00      auto
+ATOM     17  N   THR     2      -1.458   0.000   0.000  1.00  7.00      auto
+ATOM     18  O   THR     2       0.024  -2.306  -0.667  1.00  7.00      auto
+ATOM     19  CA  THR     2       0.000   0.000   0.000  1.00  7.00      auto
+ATOM     20  CB  THR     2       0.564  -0.015   1.433  1.00  7.00      auto
+ATOM     21  CG2 THR     2       0.199  -1.314   2.136  1.00  7.00      auto
+ATOM     22  OG1 THR     2       1.992   0.103   1.389  1.00  7.00      auto
+ATOM     23  HA  THR     2       0.318   0.927  -0.499  1.00  7.00      auto H   new
+ATOM     24  HB  THR     2       0.131   0.831   1.987  1.00  7.00      auto H   new
+ATOM     25 1HG2 THR     2       0.609  -1.307   3.157  1.00  7.00      auto H   new
+ATOM     26 2HG2 THR     2      -0.896  -1.411   2.182  1.00  7.00      auto H   new
+ATOM     27 3HG2 THR     2       0.619  -2.164   1.578  1.00  7.00      auto H   new
+TER      27              0
+ATOM     28  C   THR     3       0.551  -1.198  -0.766  1.00 43.00      auto
+ATOM     29  N   THR     3      -1.458   0.000   0.000  1.00 43.00      auto
+ATOM     30  O   THR     3       0.024  -2.306  -0.667  1.00 43.00      auto
+ATOM     31  CA  THR     3       0.000   0.000   0.000  1.00 43.00      auto
+ATOM     32  CB  THR     3       0.564  -0.015   1.433  1.00 43.00      auto
+ATOM     33  CG2 THR     3       2.080  -0.139   1.408  1.00 43.00      auto
+ATOM     34  OG1 THR     3       0.209   1.202   2.102  1.00 43.00      auto
+ATOM     35  HA  THR     3       0.318   0.927  -0.499  1.00 43.00      auto H   new
+ATOM     36  HB  THR     3       0.139  -0.878   1.966  1.00 43.00      auto H   new
+ATOM     37 1HG2 THR     3       2.465  -0.148   2.438  1.00 43.00      auto H   new
+ATOM     38 2HG2 THR     3       2.364  -1.074   0.903  1.00 43.00      auto H   new
+ATOM     39 3HG2 THR     3       2.509   0.715   0.864  1.00 43.00      auto H   new

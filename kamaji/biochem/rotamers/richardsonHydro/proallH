@@ -1,0 +1,32 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=15, rem=0, adj=0
+ATOM      1  C   PRO     1       0.566  -1.218  -0.723  1.00 50.00      auto
+ATOM      2  CA  PRO     1       0.000   0.000   0.000  1.00 50.00      auto
+ATOM      3  CB  PRO     1       0.344   0.000   1.491  1.00 50.00      auto
+ATOM      4  CD  PRO     1      -2.018   0.150   1.357  1.00 50.00      auto
+ATOM      5  CG  PRO     1      -0.835   0.687   2.142  1.00 50.00      auto
+ATOM      6  N   PRO     1      -1.466   0.000   0.000  1.00 50.00      auto
+ATOM      7  O   PRO     1      -0.181  -2.059  -1.222  1.00 50.00      auto
+ATOM      8 2H   PRO     1      -1.799   0.745  -0.578  1.00 50.00      auto H + new
+ATOM      9  HA  PRO     1       0.434   0.857  -0.537  1.00 50.00      auto H   new
+ATOM     10 1HB  PRO     1       0.475  -1.023   1.874  1.00 50.00      auto H   new
+ATOM     11 2HB  PRO     1       1.282   0.539   1.687  1.00 50.00      auto H   new
+ATOM     12 1HG  PRO     1      -0.910   0.441   3.212  1.00 50.00      auto H   new
+ATOM     13 2HG  PRO     1      -0.760   1.782   2.068  1.00 50.00      auto H   new
+ATOM     14 1HD  PRO     1      -2.375  -0.809   1.761  1.00 50.00      auto H   new
+ATOM     15 2HD  PRO     1      -2.871   0.845   1.377  1.00 50.00      auto H   new
+ 
+ATOM     16  CA  PRO     2       0.000   0.000   0.000  1.00 50.00      auto
+ATOM     17  CB  PRO     2       0.344   0.000   1.491  1.00 50.00      auto
+ATOM     18  CD  PRO     2      -2.018  -0.228   1.347  1.00 50.00      auto
+ATOM     19  CG  PRO     2      -0.821  -0.669   2.141  1.00 50.00      auto
+ATOM     20  N   PRO     2      -1.466   0.000   0.000  1.00 50.00      auto
+ATOM     21  C   PRO     2       0.566  -1.368  -0.364  1.00 50.00      auto
+ATOM     22  O   PRO     2      -0.181  -2.313  -0.616  1.00 50.00      auto
+ATOM     23  HA  PRO     2       0.362   0.803  -0.659  1.00 50.00      auto H   new
+ATOM     24 1HB  PRO     2       1.279  -0.545   1.687  1.00 50.00      auto H   new
+ATOM     25 2HB  PRO     2       0.482   1.023   1.871  1.00 50.00      auto H   new
+ATOM     26 1HG  PRO     2      -0.713  -1.763   2.123  1.00 50.00      auto H   new
+ATOM     27 2HG  PRO     2      -0.912  -0.372   3.196  1.00 50.00      auto H   new
+ATOM     28 1HD  PRO     2      -2.805  -0.996   1.338  1.00 50.00      auto H   new
+ATOM     29 2HD  PRO     2      -2.466   0.687   1.762  1.00 50.00      auto H   new
+ 

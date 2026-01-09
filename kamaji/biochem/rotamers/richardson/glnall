@@ -1,0 +1,51 @@
+USER  MOD reduceV2.12.3 H: found=0, std=0, add=38, rem=0, adj=0
+USER  MOD reduceV2.12.3 removed 40 hydrogens (0 hets)
+ATOM      1  C   GLN     1       0.551  -1.198  -0.766  1.00 35.00      auto
+ATOM      2  N   GLN     1      -1.458   0.000   0.000  1.00 35.00      auto
+ATOM      3  O   GLN     1       0.024  -2.306  -0.667  1.00 35.00      auto
+ATOM      4  CA  GLN     1       0.000   0.000   0.000  1.00 35.00      auto
+ATOM      5  CB  GLN     1       0.536   0.000   1.433  1.00 35.00      auto
+ATOM      6  CD  GLN     1       0.791   1.240   3.618  1.00 35.00      auto
+ATOM      7  NE2 GLN     1       1.055   2.415   4.180  1.00 35.00      auto
+ATOM      8  OE1 GLN     1       0.973   0.169   4.196  1.00 35.00      auto
+ATOM      9  CG  GLN     1       0.246   1.278   2.204  1.00 35.00      auto
+TER      19              0
+ATOM     20  C   GLN     2       0.551  -1.198  -0.766  1.00 15.00      auto
+ATOM     21  N   GLN     2      -1.458   0.000   0.000  1.00 15.00      auto
+ATOM     22  O   GLN     2       0.024  -2.306  -0.667  1.00 15.00      auto
+ATOM     23  CA  GLN     2       0.000   0.000   0.000  1.00 15.00      auto
+ATOM     24  CB  GLN     2       0.536   0.000   1.433  1.00 15.00      auto
+ATOM     25  CD  GLN     2       0.871   2.494   1.648  1.00 15.00      auto
+ATOM     26  NE2 GLN     2       0.140   3.603   1.629  1.00 15.00      auto
+ATOM     27  OE1 GLN     2       2.027   2.450   1.228  1.00 15.00      auto
+ATOM     28  CG  GLN     2       0.205   1.258   2.219  1.00 15.00      auto
+TER      35              0
+ATOM     36  C   GLN     3       0.551  -1.198  -0.766  1.00 16.00      auto
+ATOM     37  N   GLN     3      -1.458   0.000   0.000  1.00 16.00      auto
+ATOM     38  O   GLN     3       0.024  -2.306  -0.667  1.00 16.00      auto
+ATOM     39  CA  GLN     3       0.000   0.000   0.000  1.00 16.00      auto
+ATOM     40  CB  GLN     3       0.536   0.000   1.433  1.00 16.00      auto
+ATOM     41  CD  GLN     3       2.545   0.071   2.962  1.00 16.00      auto
+ATOM     42  NE2 GLN     3       3.861   0.130   3.133  1.00 16.00      auto
+ATOM     43  OE1 GLN     3       1.752   0.016   3.902  1.00 16.00      auto
+ATOM     44  CG  GLN     3       2.051   0.072   1.529  1.00 16.00      auto
+TER      51              0
+ATOM     52  C   GLN     4       0.551  -1.198  -0.766  1.00  9.00      auto
+ATOM     53  N   GLN     4      -1.458   0.000   0.000  1.00  9.00      auto
+ATOM     54  O   GLN     4       0.024  -2.306  -0.667  1.00  9.00      auto
+ATOM     55  CA  GLN     4       0.000   0.000   0.000  1.00  9.00      auto
+ATOM     56  CB  GLN     4       0.536   0.000   1.433  1.00  9.00      auto
+ATOM     57  CD  GLN     4       2.607   1.379   0.997  1.00  9.00      auto
+ATOM     58  NE2 GLN     4       3.455   1.289  -0.021  1.00  9.00      auto
+ATOM     59  OE1 GLN     4       2.277   2.454   1.498  1.00  9.00      auto
+ATOM     60  CG  GLN     4       2.051   0.072   1.529  1.00  9.00      auto
+TER      67              0
+ATOM     68  C   GLN     5       0.551  -1.198  -0.766  1.00  4.00      auto
+ATOM     69  N   GLN     5      -1.458   0.000   0.000  1.00  4.00      auto
+ATOM     70  O   GLN     5       0.024  -2.306  -0.667  1.00  4.00      auto
+ATOM     71  CA  GLN     5       0.000   0.000   0.000  1.00  4.00      auto
+ATOM     72  CB  GLN     5       0.536   0.000   1.433  1.00  4.00      auto
+ATOM     73  CD  GLN     5       0.692  -1.190   3.655  1.00  4.00      auto
+ATOM     74  NE2 GLN     5       0.758  -2.354   4.291  1.00  4.00      auto
+ATOM     75  OE1 GLN     5       1.050  -0.130   4.167  1.00  4.00      auto
+ATOM     76  CG  GLN     5       0.143  -1.225   2.243  1.00  4.00      auto

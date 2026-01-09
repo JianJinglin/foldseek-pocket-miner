@@ -22,6 +22,7 @@ import requests
 # Add parent directory to path for imports
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from foldseek_pocket_miner.structure_downloader import StructureDownloader
 from foldseek_pocket_miner.foldseek_search import FoldseekSearcher
@@ -30,6 +31,18 @@ from foldseek_pocket_miner.ligand_extractor import LigandExtractor, EXCLUDE_RESI
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Try to import Kamaji for ligand classification
+KAMAJI_AVAILABLE = False
+try:
+    from openbabel import openbabel as ob
+    from openbabel import pybel
+    from kamaji import Kamaji
+    from kamaji.pdbparser import MultiStatePDB
+    KAMAJI_AVAILABLE = True
+    logger.info("Kamaji loaded successfully for ligand classification")
+except ImportError as e:
+    logger.warning(f"Kamaji not available (missing dependencies: {e}). Using fallback classification.")
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -55,38 +68,65 @@ AA_CODES = {
     'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y', 'VAL': 'V',
 }
 
-# Ligand category definitions for Kamaji-style clustering
+# Ligand category definitions - aligned with Kamaji types
+# Kamaji types: protein, dna, rna, cofactor, glyco, ligand, water, metal, metal_catalytic, salt, modifier, additive
 LIGAND_CATEGORIES = {
+    'ligand': {
+        'name': 'Small Molecules',
+        'description': 'Drug-like compounds and generic ligands',
+        'kamaji_type': 'ligand',
+    },
+    'cofactor': {
+        'name': 'Cofactors',
+        'description': 'ATP, NAD, FAD, Heme and other cofactors',
+        'kamaji_type': 'cofactor',
+    },
+    'glyco': {
+        'name': 'Carbohydrates',
+        'description': 'Sugars and glycosylation groups',
+        'kamaji_type': 'glyco',
+    },
+    'metal_catalytic': {
+        'name': 'Catalytic Metals',
+        'description': 'Mg, Mn, Fe, Co, Ni, Cu, Zn',
+        'kamaji_type': 'metal_catalytic',
+    },
+    'metal': {
+        'name': 'Metals',
+        'description': 'Non-catalytic metal ions',
+        'kamaji_type': 'metal',
+    },
+    'modifier': {
+        'name': 'Modifiers',
+        'description': 'Post-translational modifications',
+        'kamaji_type': 'modifier',
+    },
+    'additive': {
+        'name': 'Additives',
+        'description': 'Crystallization additives (GOL, PEG, etc.)',
+        'kamaji_type': 'additive',
+    },
+    'salt': {
+        'name': 'Salts',
+        'description': 'Na, Cl, Ca, K ions',
+        'kamaji_type': 'salt',
+    },
+    # Fallback categories for when Kamaji is not available
     'small_molecule': {
         'name': 'Small Molecules',
-        'description': 'Drug-like compounds and cofactors',
-        'keywords': ['drug', 'inhibitor', 'cofactor', 'ligand'],
+        'description': 'Drug-like compounds (fallback)',
     },
     'nucleotide': {
-        'name': 'Nucleotides & Nucleic Acids',
-        'description': 'ATP, GTP, DNA, RNA fragments',
-        'patterns': ['ATP', 'ADP', 'AMP', 'GTP', 'GDP', 'GMP', 'CTP', 'UTP',
-                     'NAD', 'FAD', 'FMN', 'SAM', 'SAH', 'COA', 'ACP'],
+        'name': 'Nucleotides',
+        'description': 'ATP, GTP, NAD, FAD (fallback)',
     },
     'saccharide': {
         'name': 'Saccharides',
-        'description': 'Sugars and carbohydrates',
-        'patterns': ['GAL', 'GLC', 'MAN', 'FUC', 'SIA', 'NAG', 'BMA', 'BGC'],
-    },
-    'lipid': {
-        'name': 'Lipids',
-        'description': 'Fatty acids and lipid-like molecules',
-        'patterns': ['PLM', 'OLA', 'MYR', 'LDA', 'DGG', 'PEE', 'PLC'],
-    },
-    'peptide': {
-        'name': 'Peptides',
-        'description': 'Small peptide ligands',
-        'patterns': [],  # Detected by presence of peptide bonds
+        'description': 'Sugars and carbohydrates (fallback)',
     },
     'metal_complex': {
         'name': 'Metal Complexes',
-        'description': 'Metal-containing cofactors',
-        'patterns': ['HEM', 'HEC', 'CLF', 'FES', 'F3S', 'SF4', 'CLA', 'BCL'],
+        'description': 'Metal-containing cofactors (fallback)',
     },
 }
 
@@ -136,7 +176,7 @@ def categorize_ligand(resname: str) -> str:
 
 def cluster_ligands_by_similarity(ligands: List[Dict]) -> Dict[str, List[Dict]]:
     """
-    Cluster ligands by chemical category (Kamaji-style).
+    Cluster ligands by chemical category (fallback without Kamaji).
 
     Groups ligands into categories based on their chemical nature.
     """
@@ -149,6 +189,130 @@ def cluster_ligands_by_similarity(ligands: List[Dict]) -> Dict[str, List[Dict]]:
         clusters[category].append(lig)
 
     return dict(clusters)
+
+
+def classify_pdb_with_kamaji(pdb_content: str) -> Dict[str, List[Dict]]:
+    """
+    Use Kamaji to classify all residues in a PDB structure.
+
+    Returns a dictionary mapping category names to lists of residue info.
+    Categories: ligand, cofactor, glyco, metal_catalytic, metal, modifier, additive, salt
+    """
+    if not KAMAJI_AVAILABLE:
+        logger.debug("Kamaji not available, skipping classification")
+        return {}
+
+    try:
+        # Write PDB to temp file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.pdb', delete=False) as f:
+            f.write(pdb_content)
+            temp_path = f.name
+
+        try:
+            # Parse PDB with Kamaji's MultiStatePDB
+            with open(temp_path, 'r') as f:
+                rawpdb = f.readlines()
+
+            mmol = MultiStatePDB(rawpdb)
+            if mmol.model_count == 0:
+                return {}
+
+            mmol.set_state(model=0, alt_mode='a')
+            mol = mmol.get_structure()
+            pdb_info = mmol.pdb_info
+
+            # Run Kamaji classification
+            kamaji = Kamaji()
+            kamaji.set_molecule(mol, pdb_info=pdb_info)
+            profile = kamaji.profile
+
+            # Extract classified residues
+            results = {}
+            relevant_types = ['ligand', 'cofactor', 'glyco', 'metal_catalytic',
+                             'metal', 'modifier', 'additive', 'salt']
+
+            types_found = profile.get_types() or []
+
+            for res_type in relevant_types:
+                if res_type not in types_found:
+                    continue
+
+                residues = profile.get_type(res_type)
+                if not residues:
+                    continue
+
+                results[res_type] = []
+                for res_id, res_data in residues.items():
+                    res_info = {
+                        'name': res_data.get('name', ''),
+                        'chain': res_data.get('chain', ''),
+                        'num': res_data.get('num', 0),
+                        'type': res_type,
+                        'category_name': LIGAND_CATEGORIES.get(res_type, {}).get('name', res_type),
+                    }
+                    # Add extra info from Kamaji
+                    if 'info' in res_data:
+                        info = res_data['info']
+                        if isinstance(info, dict):
+                            res_info['kamaji_info'] = {
+                                'class': info.get('class', ''),
+                                'size': info.get('size', ''),
+                                'mw': info.get('mw', 0),
+                            }
+                    results[res_type].append(res_info)
+
+            return results
+
+        finally:
+            os.unlink(temp_path)
+
+    except Exception as e:
+        logger.warning(f"Kamaji classification failed: {e}")
+        import traceback
+        logger.debug(traceback.format_exc())
+        return {}
+
+
+def cluster_ligands_with_kamaji(ligands: List[Dict], pdb_content: str) -> Dict[str, List[Dict]]:
+    """
+    Cluster ligands using Kamaji classification.
+
+    Falls back to simple categorization if Kamaji is not available.
+    """
+    if not KAMAJI_AVAILABLE:
+        return cluster_ligands_by_similarity(ligands)
+
+    try:
+        # Get Kamaji classification for the PDB
+        kamaji_results = classify_pdb_with_kamaji(pdb_content)
+
+        if not kamaji_results:
+            # Fallback to simple categorization
+            return cluster_ligands_by_similarity(ligands)
+
+        # Build a lookup from residue name to Kamaji category
+        resname_to_category = {}
+        for category, residues in kamaji_results.items():
+            for res in residues:
+                key = res.get('name', '')
+                if key:
+                    resname_to_category[key] = category
+
+        # Categorize ligands based on Kamaji results
+        clusters = defaultdict(list)
+        for lig in ligands:
+            resname = lig.get('name', '')
+            # Look up category from Kamaji results
+            category = resname_to_category.get(resname, 'ligand')
+            lig['category'] = category
+            lig['category_name'] = LIGAND_CATEGORIES.get(category, {}).get('name', 'Other')
+            clusters[category].append(lig)
+
+        return dict(clusters)
+
+    except Exception as e:
+        logger.warning(f"Kamaji clustering failed: {e}, using fallback")
+        return cluster_ligands_by_similarity(ligands)
 
 
 def fetch_taxonomy_for_pdb(pdb_id: str) -> Dict[str, Any]:
@@ -660,6 +824,23 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
                 # Extract ligands
                 ligands = extract_ligands_from_pdb(aligned_pdb, source_pdb_id)
 
+                # Run Kamaji classification on this structure
+                kamaji_categories = {}
+                if KAMAJI_AVAILABLE:
+                    try:
+                        kamaji_results = classify_pdb_with_kamaji(aligned_pdb)
+                        for category, residues in kamaji_results.items():
+                            for res in residues:
+                                resname = res.get('name', '')
+                                if resname:
+                                    kamaji_categories[resname] = {
+                                        'category': category,
+                                        'category_name': LIGAND_CATEGORIES.get(category, {}).get('name', category),
+                                        'info': res.get('kamaji_info', {})
+                                    }
+                    except Exception as e:
+                        logger.debug(f"Kamaji classification failed for {source_pdb_id}: {e}")
+
                 for lig in ligands:
                     # Build ligand PDB string
                     lig_pdb = f"REMARK Ligand {lig['name']} from {lig['source']}\n"
@@ -667,12 +848,20 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
                         lig_pdb += atom['line'] + '\n'
                     lig_pdb += "END\n"
 
+                    # Get Kamaji category if available
+                    kamaji_cat = kamaji_categories.get(lig['name'], {})
+                    category = kamaji_cat.get('category', categorize_ligand(lig['name']))
+                    category_name = kamaji_cat.get('category_name', LIGAND_CATEGORIES.get(category, {}).get('name', 'Other'))
+
                     all_ligands.append({
                         'name': lig['name'],
                         'source': lig['source'],
                         'chain': lig['chain'],
                         'atoms': len(lig['atoms']),
-                        'pdb': lig_pdb
+                        'pdb': lig_pdb,
+                        'category': category,
+                        'category_name': category_name,
+                        'kamaji_info': kamaji_cat.get('info', {})
                     })
 
                 aligned_pdbs.append({
@@ -716,19 +905,33 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
                 seen_ligands.add(key)
                 unique_ligands.append(lig)
 
-        # Categorize ligands (Kamaji-style clustering)
+        # Categorize ligands (using Kamaji classification if available)
         ligands_info = [
-            {"name": l["name"], "source": l["source"], "chain": l["chain"], "atoms": l["atoms"]}
+            {
+                "name": l["name"],
+                "source": l["source"],
+                "chain": l["chain"],
+                "atoms": l["atoms"],
+                "category": l.get("category", "ligand"),
+                "category_name": l.get("category_name", "Small Molecules"),
+                "kamaji_info": l.get("kamaji_info", {})
+            }
             for l in unique_ligands
         ]
 
-        # Cluster ligands by category
-        ligand_clusters = cluster_ligands_by_similarity(ligands_info)
+        # Cluster ligands by their pre-assigned Kamaji categories
+        ligand_clusters = defaultdict(list)
+        for lig in ligands_info:
+            category = lig.get("category", "ligand")
+            ligand_clusters[category].append(lig)
+
         jobs[job_id]["ligand_clusters"] = {
-            cat: [{"name": lig["name"], "source": lig["source"], "category_name": lig.get("category_name", "")}
+            cat: [{"name": lig["name"], "source": lig["source"], "category_name": lig.get("category_name", ""),
+                   "kamaji_info": lig.get("kamaji_info", {})}
                   for lig in ligs]
             for cat, ligs in ligand_clusters.items()
         }
+        jobs[job_id]["kamaji_available"] = KAMAJI_AVAILABLE
 
         jobs[job_id]["ligand_pdbs"] = unique_ligands
         jobs[job_id]["ligands"] = ligands_info
@@ -838,6 +1041,7 @@ def get_results(job_id):
         "query_pdb": job.get("query_pdb", ""),
         "species_groups": job.get("species_groups", {}),
         "taxonomy_data": job.get("taxonomy_data", {}),
+        "kamaji_available": job.get("kamaji_available", False),
     })
 
 

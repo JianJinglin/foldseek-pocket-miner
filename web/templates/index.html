@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foldseek Pocket Miner</title>
+
+    <!-- 3Dmol.js for structure visualization -->
+    <script src="https://3dmol.org/build/3Dmol-min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        .viewer-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .ligand-item:hover {
+            background-color: #f3f4f6;
+        }
+
+        .ligand-item.selected {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Foldseek Pocket Miner</h1>
+                    <p class="text-sm text-gray-500">Find similar structures and extract binding pockets</p>
+                </div>
+                <a href="https://github.com/JianJinglin/foldseek-pocket-miner"
+                   target="_blank"
+                   class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Input Section -->
+        <div id="input-section" class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Input Structure</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">PDB ID</label>
+                    <input type="text" id="pdb-id"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="e.g., 3HTB" maxlength="4">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Chain</label>
+                    <input type="text" id="chain"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="e.g., A" maxlength="1" value="A">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Max Hits</label>
+                    <input type="number" id="max-hits"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="50" value="50" min="10" max="500">
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button id="submit-btn"
+                        onclick="submitJob()"
+                        class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span id="btn-text">Search & Mine Pockets</span>
+                    <svg id="btn-spinner" class="hidden inline w-4 h-4 ml-2 spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Example buttons -->
+            <div class="mt-4 flex flex-wrap gap-2">
+                <span class="text-sm text-gray-500">Examples:</span>
+                <button onclick="setExample('3HTB', 'A')" class="text-sm text-blue-600 hover:underline">CDK2 (3HTB)</button>
+                <button onclick="setExample('1ATP', 'E')" class="text-sm text-blue-600 hover:underline">PKA (1ATP)</button>
+                <button onclick="setExample('4HJO', 'A')" class="text-sm text-blue-600 hover:underline">EGFR (4HJO)</button>
+                <button onclick="setExample('3ERT', 'A')" class="text-sm text-blue-600 hover:underline">ER (3ERT)</button>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div id="progress-section" class="hidden bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Pipeline Progress</h2>
+
+            <div class="mb-4">
+                <div class="flex justify-between text-sm mb-1">
+                    <span id="progress-step" class="text-gray-600">Initializing...</span>
+                    <span id="progress-percent" class="text-gray-600">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="progress-bar" class="progress-bar bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Pipeline steps visualization -->
+            <div class="grid grid-cols-6 gap-2 text-center text-xs">
+                <div class="step" data-step="1">
+                    <div id="step-1" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">1</div>
+                    <span>Query</span>
+                </div>
+                <div class="step" data-step="2">
+                    <div id="step-2" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">2</div>
+                    <span>Search</span>
+                </div>
+                <div class="step" data-step="3">
+                    <div id="step-3" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">3</div>
+                    <span>Download</span>
+                </div>
+                <div class="step" data-step="4">
+                    <div id="step-4" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">4</div>
+                    <span>Filter</span>
+                </div>
+                <div class="step" data-step="5">
+                    <div id="step-5" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">5</div>
+                    <span>Extract</span>
+                </div>
+                <div class="step" data-step="6">
+                    <div id="step-6" class="w-8 h-8 mx-auto rounded-full bg-gray-200 flex items-center justify-center mb-1">6</div>
+                    <span>Visualize</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="hidden">
+            <!-- Statistics -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="text-sm text-gray-500">Similar Structures</div>
+                    <div id="stat-hits" class="text-2xl font-bold text-blue-600">0</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="text-sm text-gray-500">Downloaded</div>
+                    <div id="stat-downloaded" class="text-2xl font-bold text-green-600">0</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="text-sm text-gray-500">With Ligands</div>
+                    <div id="stat-with-ligands" class="text-2xl font-bold text-purple-600">0</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="text-sm text-gray-500">Unique Ligands</div>
+                    <div id="stat-ligands" class="text-2xl font-bold text-orange-600">0</div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 3D Viewer -->
+                <div class="lg:col-span-2 bg-white rounded-lg shadow">
+                    <div class="p-4 border-b">
+                        <h3 class="font-semibold">3D Structure Viewer</h3>
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="toggleProtein()" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Toggle Protein</button>
+                            <button onclick="toggleLigands()" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Toggle Ligands</button>
+                            <button onclick="resetView()" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Reset View</button>
+                            <button onclick="toggleSurface()" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Toggle Surface</button>
+                        </div>
+                    </div>
+                    <div id="viewer" class="viewer-container"></div>
+                </div>
+
+                <!-- Ligand List -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-4 border-b">
+                        <h3 class="font-semibold">Extracted Ligands</h3>
+                        <p class="text-sm text-gray-500">Click to highlight in viewer</p>
+                    </div>
+                    <div id="ligand-list" class="max-h-96 overflow-y-auto p-2">
+                        <!-- Ligands will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Foldseek Hits Table -->
+            <div class="mt-6 bg-white rounded-lg shadow">
+                <div class="p-4 border-b">
+                    <h3 class="font-semibold">Foldseek Search Results</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">PDB ID</th>
+                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Chain</th>
+                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">E-value</th>
+                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Score</th>
+                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Seq ID</th>
+                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Ligands</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hits-table">
+                            <!-- Hits will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Section -->
+        <div id="error-section" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                <span id="error-message" class="text-red-700"></span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-8">
+        <div class="max-w-7xl mx-auto px-4 py-4 text-center text-sm text-gray-500">
+            <p>Powered by <a href="https://github.com/steineggerlab/foldseek" class="text-blue-600 hover:underline">Foldseek</a> |
+               Visualization with <a href="https://3dmol.org" class="text-blue-600 hover:underline">3Dmol.js</a></p>
+            <p class="mt-1">Made by Jinglin Jian @ Scripps Research</p>
+        </div>
+    </footer>
+
+    <script>
+        // Global state
+        let viewer = null;
+        let currentJobId = null;
+        let pollInterval = null;
+        let proteinModel = null;
+        let ligandModels = [];
+        let showProtein = true;
+        let showLigands = true;
+        let showSurface = false;
+
+        // Initialize 3Dmol viewer
+        function initViewer() {
+            const element = document.getElementById('viewer');
+            viewer = $3Dmol.createViewer(element, {
+                backgroundColor: 'white'
+            });
+        }
+
+        // Set example values
+        function setExample(pdbId, chain) {
+            document.getElementById('pdb-id').value = pdbId;
+            document.getElementById('chain').value = chain;
+        }
+
+        // Submit job
+        async function submitJob() {
+            const pdbId = document.getElementById('pdb-id').value.trim().toUpperCase();
+            const chain = document.getElementById('chain').value.trim().toUpperCase() || 'A';
+            const maxHits = parseInt(document.getElementById('max-hits').value) || 50;
+
+            if (!pdbId || pdbId.length !== 4) {
+                showError('Please enter a valid 4-character PDB ID');
+                return;
+            }
+
+            // Update UI
+            document.getElementById('submit-btn').disabled = true;
+            document.getElementById('btn-text').textContent = 'Processing...';
+            document.getElementById('btn-spinner').classList.remove('hidden');
+            document.getElementById('error-section').classList.add('hidden');
+            document.getElementById('results-section').classList.add('hidden');
+            document.getElementById('progress-section').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/submit', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({pdb_id: pdbId, chain: chain, max_hits: maxHits})
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to submit job');
+                }
+
+                currentJobId = data.job_id;
+                startPolling();
+
+            } catch (error) {
+                showError(error.message);
+                resetSubmitButton();
+            }
+        }
+
+        // Start polling for job status
+        function startPolling() {
+            pollInterval = setInterval(checkStatus, 1000);
+        }
+
+        // Check job status
+        async function checkStatus() {
+            if (!currentJobId) return;
+
+            try {
+                const response = await fetch(`/api/status/${currentJobId}`);
+                const data = await response.json();
+
+                updateProgress(data);
+
+                if (data.status === 'completed') {
+                    clearInterval(pollInterval);
+                    await loadResults();
+                } else if (data.status === 'failed') {
+                    clearInterval(pollInterval);
+                    showError(data.error || 'Job failed');
+                    resetSubmitButton();
+                }
+
+            } catch (error) {
+                console.error('Status check failed:', error);
+            }
+        }
+
+        // Update progress UI
+        function updateProgress(data) {
+            const progress = data.progress || 0;
+            const step = data.current_step || '';
+
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            document.getElementById('progress-percent').textContent = `${progress}%`;
+            document.getElementById('progress-step').textContent = step;
+
+            // Update step indicators
+            const stepThresholds = [10, 30, 50, 65, 85, 100];
+            for (let i = 0; i < stepThresholds.length; i++) {
+                const stepEl = document.getElementById(`step-${i + 1}`);
+                if (progress >= stepThresholds[i]) {
+                    stepEl.classList.remove('bg-gray-200');
+                    stepEl.classList.add('bg-green-500', 'text-white');
+                } else if (progress >= (stepThresholds[i - 1] || 0)) {
+                    stepEl.classList.remove('bg-gray-200');
+                    stepEl.classList.add('bg-blue-500', 'text-white');
+                }
+            }
+        }
+
+        // Load and display results
+        async function loadResults() {
+            try {
+                const response = await fetch(`/api/results/${currentJobId}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load results');
+                }
+
+                displayResults(data);
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                resetSubmitButton();
+            }
+        }
+
+        // Display results
+        function displayResults(data) {
+            // Update statistics
+            document.getElementById('stat-hits').textContent = data.hits.length;
+            document.getElementById('stat-downloaded').textContent = data.downloaded_count;
+            document.getElementById('stat-with-ligands').textContent = data.ligand_info.length;
+            document.getElementById('stat-ligands').textContent = data.ligands.length;
+
+            // Populate hits table
+            const hitsTable = document.getElementById('hits-table');
+            hitsTable.innerHTML = '';
+
+            const ligandMap = {};
+            data.ligand_info.forEach(info => {
+                ligandMap[info.pdb_id] = info.ligands.join(', ');
+            });
+
+            data.hits.slice(0, 50).forEach(hit => {
+                const row = document.createElement('tr');
+                row.className = 'border-t hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-4 py-2">
+                        <a href="https://www.rcsb.org/structure/${hit.pdb_id}"
+                           target="_blank" class="text-blue-600 hover:underline">${hit.pdb_id}</a>
+                    </td>
+                    <td class="px-4 py-2">${hit.chain}</td>
+                    <td class="px-4 py-2">${hit.evalue.toExponential(2)}</td>
+                    <td class="px-4 py-2">${hit.score.toFixed(1)}</td>
+                    <td class="px-4 py-2">${(hit.seq_identity * 100).toFixed(1)}%</td>
+                    <td class="px-4 py-2">${ligandMap[hit.pdb_id] || '-'}</td>
+                `;
+                hitsTable.appendChild(row);
+            });
+
+            // Populate ligand list
+            const ligandList = document.getElementById('ligand-list');
+            ligandList.innerHTML = '';
+
+            data.ligands.forEach((lig, idx) => {
+                const item = document.createElement('div');
+                item.className = 'ligand-item p-2 border rounded mb-2 cursor-pointer';
+                item.innerHTML = `
+                    <div class="font-medium">${lig.name}</div>
+                    <div class="text-sm text-gray-500">From: ${lig.source} Chain ${lig.chain}</div>
+                    <div class="text-xs text-gray-400">${lig.atoms} atoms</div>
+                `;
+                item.onclick = () => highlightLigand(idx);
+                ligandList.appendChild(item);
+            });
+
+            // Initialize viewer with structures
+            initViewer();
+            loadStructures(data);
+
+            // Show results section
+            document.getElementById('results-section').classList.remove('hidden');
+        }
+
+        // Load structures into viewer
+        function loadStructures(data) {
+            viewer.removeAllModels();
+            ligandModels = [];
+
+            // Load query protein
+            if (data.query_pdb) {
+                proteinModel = viewer.addModel(data.query_pdb, 'pdb');
+                viewer.setStyle({model: proteinModel}, {cartoon: {color: 'spectrum'}});
+            }
+
+            // Load ligands with different colors
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+                           '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
+
+            data.ligand_pdbs.forEach((lig, idx) => {
+                const model = viewer.addModel(lig.pdb, 'pdb');
+                ligandModels.push(model);
+                viewer.setStyle({model: model}, {
+                    stick: {
+                        radius: 0.2,
+                        color: colors[idx % colors.length]
+                    }
+                });
+            });
+
+            viewer.zoomTo();
+            viewer.render();
+        }
+
+        // Toggle protein visibility
+        function toggleProtein() {
+            showProtein = !showProtein;
+            if (proteinModel !== null) {
+                if (showProtein) {
+                    viewer.setStyle({model: proteinModel}, {cartoon: {color: 'spectrum'}});
+                } else {
+                    viewer.setStyle({model: proteinModel}, {});
+                }
+                viewer.render();
+            }
+        }
+
+        // Toggle ligands visibility
+        function toggleLigands() {
+            showLigands = !showLigands;
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+                           '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
+
+            ligandModels.forEach((model, idx) => {
+                if (showLigands) {
+                    viewer.setStyle({model: model}, {stick: {radius: 0.2, color: colors[idx % colors.length]}});
+                } else {
+                    viewer.setStyle({model: model}, {});
+                }
+            });
+            viewer.render();
+        }
+
+        // Toggle surface
+        function toggleSurface() {
+            showSurface = !showSurface;
+            if (proteinModel !== null) {
+                if (showSurface) {
+                    viewer.addSurface($3Dmol.SurfaceType.VDW, {
+                        opacity: 0.7,
+                        color: 'white'
+                    }, {model: proteinModel});
+                } else {
+                    viewer.removeAllSurfaces();
+                }
+                viewer.render();
+            }
+        }
+
+        // Reset view
+        function resetView() {
+            viewer.zoomTo();
+            viewer.render();
+        }
+
+        // Highlight specific ligand
+        function highlightLigand(idx) {
+            // Update ligand list selection
+            document.querySelectorAll('.ligand-item').forEach((el, i) => {
+                el.classList.toggle('selected', i === idx);
+            });
+
+            // Zoom to ligand
+            if (idx < ligandModels.length) {
+                viewer.zoomTo({model: ligandModels[idx]});
+                viewer.render();
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-section').classList.remove('hidden');
+        }
+
+        // Reset submit button
+        function resetSubmitButton() {
+            document.getElementById('submit-btn').disabled = false;
+            document.getElementById('btn-text').textContent = 'Search & Mine Pockets';
+            document.getElementById('btn-spinner').classList.add('hidden');
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initViewer();
+        });
+    </script>
+</body>
+</html>

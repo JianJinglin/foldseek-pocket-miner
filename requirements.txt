@@ -10,5 +10,5 @@ flask>=2.3.0
 flask-cors>=4.0.0
 gunicorn>=21.0.0
 
-# PyMOL for Linux servers (use latest available alpha)
-pymol-open-source>=3.0.0
+# PyMOL for Linux servers (alpha version)
+pymol-open-source==3.1.0a0

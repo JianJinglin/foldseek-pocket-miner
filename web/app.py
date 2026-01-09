@@ -279,10 +279,10 @@ def group_hits_by_species(hits: List[Dict], taxonomy_data: Dict[str, Dict]) -> D
     for hit in hits:
         pdb_id = hit.get('pdb_id', '').upper()
         tax = taxonomy_data.get(pdb_id, {})
-        species = tax.get('scientific_name', 'Unknown')
+        species = tax.get('scientific_name') or 'Unknown'
         hit['species'] = species
         hit['taxonomy_id'] = tax.get('taxonomy_id')
-        hit['common_name'] = tax.get('common_name', '')
+        hit['common_name'] = tax.get('common_name') or ''
         groups[species].append(hit)
 
     return dict(groups)
@@ -573,9 +573,9 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
         for hit in hits_list:
             pdb_id = hit['pdb_id'].upper()
             tax = taxonomy_data.get(pdb_id, {})
-            hit['species'] = tax.get('scientific_name', 'Unknown')
+            hit['species'] = tax.get('scientific_name') or 'Unknown'
             hit['taxonomy_id'] = tax.get('taxonomy_id')
-            hit['common_name'] = tax.get('common_name', '')
+            hit['common_name'] = tax.get('common_name') or ''
 
         jobs[job_id]["hits"] = hits_list
         jobs[job_id]["taxonomy_data"] = taxonomy_data

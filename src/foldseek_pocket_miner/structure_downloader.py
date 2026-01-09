@@ -10,7 +10,11 @@ from typing import List, Optional, Dict, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
+import urllib3
 from tqdm import tqdm
+
+# Suppress SSL warnings when verify=False is used
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +83,7 @@ class StructureDownloader:
             return str(output_path)
 
         try:
-            response = requests.get(url, timeout=30)
+            response = requests.get(url, timeout=30, verify=False)
             response.raise_for_status()
 
             with open(output_path, 'w') as f:
@@ -92,7 +96,7 @@ class StructureDownloader:
             # Try compressed version
             try:
                 gz_url = url + ".gz"
-                response = requests.get(gz_url, timeout=30)
+                response = requests.get(gz_url, timeout=30, verify=False)
                 response.raise_for_status()
 
                 content = gzip.decompress(response.content).decode('utf-8')
@@ -178,7 +182,7 @@ class StructureDownloader:
         url = f"{self.RCSB_API_URL}/entry/{pdb_id}"
 
         try:
-            response = requests.get(url, timeout=30)
+            response = requests.get(url, timeout=30, verify=False)
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -221,7 +225,8 @@ class StructureDownloader:
             response = requests.post(
                 url,
                 json={"query": query, "variables": {"pdb_id": pdb_id}},
-                timeout=30
+                timeout=30,
+                verify=False
             )
             response.raise_for_status()
             data = response.json()

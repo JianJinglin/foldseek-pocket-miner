@@ -285,12 +285,14 @@ def get_results(job_id):
 def fetch_pdb(pdb_id):
     """Fetch PDB structure from RCSB."""
     import requests
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     pdb_id = pdb_id.upper()
     url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
 
     try:
-        response = requests.get(url, timeout=30)
+        response = requests.get(url, timeout=30, verify=False)
         response.raise_for_status()
         return response.text, 200, {'Content-Type': 'text/plain'}
     except Exception as e:

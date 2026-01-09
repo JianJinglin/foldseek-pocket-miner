@@ -146,7 +146,7 @@ If you use this tool, please cite:
 **Foldseek Pocket Miner:**
 ```bibtex
 @software{jian2024foldseek_pocket_miner,
-  author = {Jian, Jinglin},
+  author = {Jian, Jinglin and Holcomb, Matthew and Forli, Stefano},
   title = {Foldseek Pocket Miner: A Tool for Protein Binding Pocket Discovery},
   year = {2024},
   publisher = {GitHub},
@@ -162,3 +162,9 @@ If you use this tool, please cite:
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=JianJinglin/foldseek-pocket-miner&type=Date)](https://star-history.com/#JianJinglin/foldseek-pocket-miner&Date)
+
+---
+
+<p align="center">
+  Developed at <a href="https://forlilab.org/">Forli Lab</a> @ Scripps Research
+</p>

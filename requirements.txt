@@ -1,0 +1,14 @@
+# Core dependencies
+requests>=2.28.0
+biopython>=1.80
+numpy>=1.21.0
+pandas>=1.4.0
+tqdm>=4.64.0
+
+# Web application
+flask>=2.3.0
+flask-cors>=4.0.0
+gunicorn>=21.0.0
+
+# PyMOL for Linux servers
+pymol-open-source>=2.5.0

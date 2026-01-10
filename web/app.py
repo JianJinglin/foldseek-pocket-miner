@@ -1700,17 +1700,16 @@ def download_selected(job_id):
 
         # Get selected hits data
         all_hits = job.get("hits", [])
-        aligned_pdbs = job.get("aligned_pdbs", [])
         taxonomy_data = job.get("taxonomy_data", {})
 
         # Extract PDB IDs from "pdb_chain" format
         selected_pdb_ids = set(h.split('_')[0].lower() for h in selected_hits)
         selected_ligand_pdb_ids = set(h.split('_')[0].lower() for h in selected_ligand_hits)
 
-        # Create lookup for aligned PDB content
-        aligned_pdb_lookup = {ap['pdb_id'].lower(): ap['pdb'] for ap in aligned_pdbs}
+        # Path to downloaded structures
+        structures_dir = RESULTS_FOLDER / job_id / "structures"
 
-        # Write selected aligned structures
+        # Write selected aligned structures - read directly from downloaded files
         hit_paths = []
         for hit in all_hits:
             hit_pdb_id = hit.get('pdb_id', '').lower()
@@ -1718,15 +1717,23 @@ def download_selected(job_id):
             hit_id = f"{hit_pdb_id}_{hit_chain}"
 
             if hit_pdb_id in selected_pdb_ids:
-                hit_pdb = aligned_pdb_lookup.get(hit_pdb_id, '')
-                if hit_pdb:
+                # Try to find the structure file
+                structure_file = structures_dir / f"{hit_pdb_id}_{hit_chain}.pdb"
+                if not structure_file.exists():
+                    structure_file = structures_dir / f"{hit_pdb_id.upper()}_{hit_chain}.pdb"
+
+                if structure_file.exists():
+                    hit_pdb = structure_file.read_text()
                     hit_path = os.path.join(tmpdir, f"hit_{hit_id}.pdb")
                     with open(hit_path, 'w') as f:
                         f.write(hit_pdb)
                     # Get taxonomy info
                     tax_info = taxonomy_data.get(hit_pdb_id.upper(), {})
                     species = tax_info.get('scientific_name', 'Unknown')
-                    hit_paths.append((hit_path, hit_id, hit_pdb_id, species))
+                    organism_type = tax_info.get('organism_type', 'unknown')
+                    hit_paths.append((hit_path, hit_id, hit_pdb_id, species, organism_type))
+                else:
+                    logger.warning(f"Structure file not found for {hit_id}")
 
         # Write ligands from selected ligand hits only, grouped by taxonomy
         ligand_paths = []
@@ -1773,52 +1780,64 @@ cmd.spectrum("b", "blue_white_red", "query_{pdb_id}", minimum=0, maximum=100)
 cmd.group("protein", "query_{pdb_id}")
 '''
 
-        # Add aligned structures
+        # Add aligned structures grouped by organism type
         if hit_paths:
             script += '\n# Load aligned structures\n'
-            for hit_path, hit_id, hit_pdb_id, species in hit_paths:
+
+            # Group structures by organism type
+            structures_by_org = {}
+            for hit_path, hit_id, hit_pdb_id, species, org_type in hit_paths:
                 obj_name = f"hit_{hit_id}".replace('-', '_')
                 script += f'cmd.load("{hit_path}", "{obj_name}")\n'
                 script += f'cmd.show("cartoon", "{obj_name}")\n'
                 script += f'cmd.color("gray70", "{obj_name}")\n'
 
-            script += '\n# Group all aligned structures\n'
-            hit_names = [f"hit_{h[1]}".replace('-', '_') for h in hit_paths]
-            script += f'cmd.group("aligned_structures", "{" ".join(hit_names)}")\n'
+                # Group by organism type
+                org_key = org_type if org_type else 'unknown'
+                if org_key not in structures_by_org:
+                    structures_by_org[org_key] = []
+                structures_by_org[org_key].append(obj_name)
+
+            # Create organism type subgroups
+            script += '\n# Group structures by organism type\n'
+            org_group_names = []
+            for org_type, struct_names in structures_by_org.items():
+                group_name = f"struct_{org_type}"
+                org_group_names.append(group_name)
+                script += f'cmd.group("{group_name}", "{" ".join(struct_names)}")\n'
+
+            # Create main aligned_structures group
+            script += f'cmd.group("aligned_structures", "{" ".join(org_group_names)}")\n'
             script += 'cmd.disable("aligned_structures")  # Hidden by default\n'
 
-        # Add ligands grouped by taxonomy
+        # Add ligands grouped by organism type
         if ligand_paths:
-            script += '\n# Load ligands (grouped by taxonomy)\n'
+            script += '\n# Load ligands\n'
 
-            # First load all ligands
-            all_ligand_names = []
+            # Group ligands by organism type
+            ligands_by_org = {}
             for lig_path, lig_name, lig_source, species, org_type in ligand_paths:
                 obj_name = f"lig_{lig_name}_{lig_source}".replace('-', '_')
-                all_ligand_names.append(obj_name)
                 script += f'cmd.load("{lig_path}", "{obj_name}")\n'
                 script += f'cmd.show("sticks", "{obj_name}")\n'
                 script += f'util.cbag("{obj_name}")  # Color by atom type\n'
 
-            # Group ligands by species
-            script += '\n# Group ligands by taxonomy\n'
-            species_groups = {}
-            for lig_path, lig_name, lig_source, species, org_type in ligand_paths:
-                obj_name = f"lig_{lig_name}_{lig_source}".replace('-', '_')
-                # Clean species name for PyMOL group name
-                species_clean = species.replace(' ', '_').replace('.', '').replace('-', '_')[:30] if species else 'Unknown'
-                if species_clean not in species_groups:
-                    species_groups[species_clean] = []
-                species_groups[species_clean].append(obj_name)
+                # Group by organism type
+                org_key = org_type if org_type else 'unknown'
+                if org_key not in ligands_by_org:
+                    ligands_by_org[org_key] = []
+                ligands_by_org[org_key].append(obj_name)
 
-            # Create species subgroups under ligands
-            for species_name, lig_names in species_groups.items():
-                group_name = f"lig_{species_name}"
+            # Create organism type subgroups for ligands
+            script += '\n# Group ligands by organism type\n'
+            lig_org_group_names = []
+            for org_type, lig_names in ligands_by_org.items():
+                group_name = f"lig_{org_type}"
+                lig_org_group_names.append(group_name)
                 script += f'cmd.group("{group_name}", "{" ".join(lig_names)}")\n'
 
-            # Create main ligands group containing all species subgroups
-            species_group_names = [f"lig_{s}" for s in species_groups.keys()]
-            script += f'cmd.group("ligands", "{" ".join(species_group_names)}")\n'
+            # Create main ligands group
+            script += f'cmd.group("ligands", "{" ".join(lig_org_group_names)}")\n'
 
         # Finalize visualization
         script += f'''

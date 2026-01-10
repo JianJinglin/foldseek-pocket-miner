@@ -191,6 +191,79 @@ def cluster_ligands_by_similarity(ligands: List[Dict]) -> Dict[str, List[Dict]]:
     return dict(clusters)
 
 
+# Cache for ligand metadata
+_ligand_metadata_cache: Dict[str, Dict] = {}
+
+
+def fetch_ligand_metadata(ligand_id: str) -> Dict[str, Any]:
+    """
+    Fetch ligand metadata from RCSB API.
+
+    Returns molecular weight, formula, description etc.
+    """
+    ligand_id = ligand_id.upper().strip()
+
+    # Check cache
+    if ligand_id in _ligand_metadata_cache:
+        return _ligand_metadata_cache[ligand_id]
+
+    try:
+        url = f"https://data.rcsb.org/rest/v1/core/chemcomp/{ligand_id}"
+        response = requests.get(url, timeout=5, verify=False)
+
+        if response.ok:
+            data = response.json()
+
+            # Extract relevant info
+            chem_comp = data.get('chem_comp', {})
+            descriptor = data.get('rcsb_chem_comp_descriptor', {})
+
+            metadata = {
+                'id': ligand_id,
+                'name': chem_comp.get('name', ''),
+                'formula': chem_comp.get('formula', ''),
+                'molecular_weight': chem_comp.get('formula_weight', 0),
+                'type': chem_comp.get('type', ''),
+                'description': chem_comp.get('name', ''),  # Full chemical name
+                'smiles': descriptor.get('SMILES', '') if descriptor else '',
+            }
+
+            # Cache the result
+            _ligand_metadata_cache[ligand_id] = metadata
+            return metadata
+
+    except Exception as e:
+        logger.debug(f"Failed to fetch ligand metadata for {ligand_id}: {e}")
+
+    # Return empty dict on failure
+    return {'id': ligand_id}
+
+
+def fetch_ligand_metadata_batch(ligand_ids: List[str]) -> Dict[str, Dict]:
+    """
+    Fetch metadata for multiple ligands.
+
+    Returns dict mapping ligand ID to metadata.
+    """
+    results = {}
+    uncached = []
+
+    # Check cache first
+    for lid in ligand_ids:
+        lid_upper = lid.upper().strip()
+        if lid_upper in _ligand_metadata_cache:
+            results[lid_upper] = _ligand_metadata_cache[lid_upper]
+        else:
+            uncached.append(lid_upper)
+
+    # Fetch uncached (up to 10 to avoid too many requests)
+    for lid in uncached[:10]:
+        metadata = fetch_ligand_metadata(lid)
+        results[lid] = metadata
+
+    return results
+
+
 def classify_pdb_with_kamaji(pdb_content: str) -> Dict[str, List[Dict]]:
     """
     Use Kamaji to classify all residues in a PDB structure.
@@ -353,11 +426,56 @@ def fetch_taxonomy_for_pdb(pdb_id: str) -> Dict[str, Any]:
         return {}
 
 
+def classify_organism_type(scientific_name: str, taxonomy_id: Optional[int], lineage: List[str] = None) -> str:
+    """
+    Classify organism into high-level categories: viral, mammal, human, bacteria, other.
+    """
+    if not scientific_name:
+        return 'unknown'
+
+    name_lower = scientific_name.lower()
+
+    # Check for human
+    if 'homo sapiens' in name_lower or taxonomy_id == 9606:
+        return 'human'
+
+    # Check for viruses (common patterns)
+    viral_keywords = ['virus', 'viral', 'phage', 'viridae', 'virales',
+                      'herpes', 'hiv', 'cmv', 'cytomegalovirus', 'influenza',
+                      'coronavirus', 'sars', 'hepatitis', 'retrovirus']
+    if any(kw in name_lower for kw in viral_keywords):
+        return 'viral'
+
+    # Check for mammals
+    mammal_keywords = ['mus musculus', 'rattus', 'mouse', 'rat', 'bovine',
+                       'bos taurus', 'sus scrofa', 'pig', 'rabbit', 'oryctolagus',
+                       'canis', 'dog', 'felis', 'cat', 'primate', 'macaca',
+                       'monkey', 'chimpanzee', 'gorilla']
+    if any(kw in name_lower for kw in mammal_keywords):
+        return 'mammal'
+
+    # Check for bacteria
+    bacteria_keywords = ['escherichia', 'bacillus', 'streptococcus', 'staphylococcus',
+                         'salmonella', 'pseudomonas', 'mycobacterium', 'clostridium']
+    if any(kw in name_lower for kw in bacteria_keywords):
+        return 'bacteria'
+
+    # Check for fungi/yeast
+    fungi_keywords = ['saccharomyces', 'candida', 'aspergillus', 'yeast', 'fungi']
+    if any(kw in name_lower for kw in fungi_keywords):
+        return 'fungi'
+
+    return 'other'
+
+
 def fetch_taxonomy_batch(pdb_ids: List[str]) -> Dict[str, Dict]:
     """
-    Fetch taxonomy information for multiple PDB entries using GraphQL.
+    Fetch taxonomy and citation information for multiple PDB entries using GraphQL.
 
-    Returns dict mapping pdb_id to taxonomy info.
+    Returns dict mapping pdb_id to taxonomy info including:
+    - taxonomy_id, scientific_name, common_name, source_type
+    - organism_type (human, mammal, viral, bacteria, fungi, other)
+    - citation info (doi, pubmed_id, title, year, authors)
     """
     if not pdb_ids:
         return {}
@@ -365,11 +483,22 @@ def fetch_taxonomy_batch(pdb_ids: List[str]) -> Dict[str, Dict]:
     # Use GraphQL for batch query
     graphql_url = "https://data.rcsb.org/graphql"
 
-    # Build query for multiple entries
+    # Build query for multiple entries - include citation info
     query = """
-    query getTaxonomy($ids: [String!]!) {
+    query getTaxonomyAndCitation($ids: [String!]!) {
         entries(entry_ids: $ids) {
             rcsb_id
+            struct {
+                title
+            }
+            rcsb_primary_citation {
+                pdbx_database_id_DOI
+                pdbx_database_id_PubMed
+                title
+                year
+                rcsb_authors
+                journal_abbrev
+            }
             polymer_entities {
                 rcsb_entity_source_organism {
                     ncbi_taxonomy_id
@@ -406,6 +535,37 @@ def fetch_taxonomy_batch(pdb_ids: List[str]) -> Dict[str, Dict]:
                         continue
                     pdb_id = entry.get('rcsb_id', '').upper()
 
+                    result = {
+                        'taxonomy_id': None,
+                        'scientific_name': '',
+                        'common_name': '',
+                        'source_type': '',
+                        'organism_type': 'unknown',
+                        'structure_title': '',
+                        'citation': None,
+                    }
+
+                    # Get structure title
+                    struct = entry.get('struct', {})
+                    if struct:
+                        result['structure_title'] = struct.get('title', '')
+
+                    # Get citation info
+                    citation = entry.get('rcsb_primary_citation', {})
+                    if citation:
+                        doi = citation.get('pdbx_database_id_DOI', '')
+                        pubmed_id = citation.get('pdbx_database_id_PubMed', '')
+                        result['citation'] = {
+                            'doi': doi,
+                            'pubmed_id': pubmed_id,
+                            'title': citation.get('title', ''),
+                            'year': citation.get('year'),
+                            'authors': citation.get('rcsb_authors', []),
+                            'journal': citation.get('journal_abbrev', ''),
+                            'doi_url': f"https://doi.org/{doi}" if doi else '',
+                            'pubmed_url': f"https://pubmed.ncbi.nlm.nih.gov/{pubmed_id}/" if pubmed_id else '',
+                        }
+
                     # Get first source organism from first polymer entity
                     polymer_entities = entry.get('polymer_entities', [])
                     if polymer_entities:
@@ -413,13 +573,18 @@ def fetch_taxonomy_batch(pdb_ids: List[str]) -> Dict[str, Dict]:
                             organisms = pe.get('rcsb_entity_source_organism', [])
                             if organisms:
                                 org = organisms[0]
-                                results[pdb_id] = {
-                                    'taxonomy_id': org.get('ncbi_taxonomy_id'),
-                                    'scientific_name': org.get('ncbi_scientific_name', ''),
-                                    'common_name': org.get('common_name', ''),
-                                    'source_type': org.get('source_type', ''),
-                                }
+                                result['taxonomy_id'] = org.get('ncbi_taxonomy_id')
+                                result['scientific_name'] = org.get('ncbi_scientific_name', '')
+                                result['common_name'] = org.get('common_name', '')
+                                result['source_type'] = org.get('source_type', '')
+                                # Classify organism type
+                                result['organism_type'] = classify_organism_type(
+                                    result['scientific_name'],
+                                    result['taxonomy_id']
+                                )
                                 break
+
+                    results[pdb_id] = result
 
     except Exception as e:
         logger.warning(f"GraphQL taxonomy fetch failed: {e}")
@@ -427,9 +592,127 @@ def fetch_taxonomy_batch(pdb_ids: List[str]) -> Dict[str, Dict]:
         for pdb_id in pdb_ids[:20]:  # Limit fallback
             tax = fetch_taxonomy_for_pdb(pdb_id)
             if tax:
+                tax['organism_type'] = classify_organism_type(
+                    tax.get('scientific_name', ''),
+                    tax.get('taxonomy_id')
+                )
+                tax['citation'] = None
                 results[pdb_id.upper()] = tax
 
     return results
+
+
+def fetch_citation_chain(doi: str = None, pubmed_id: str = None, max_depth: int = 3) -> Dict:
+    """
+    Fetch citation chain using Semantic Scholar API.
+    Returns papers that cite this paper (citing) and papers this paper cites (cited).
+
+    Args:
+        doi: DOI of the paper
+        pubmed_id: PubMed ID of the paper
+        max_depth: Maximum depth of citation chain to fetch
+
+    Returns:
+        Dict with 'paper', 'citing' (papers that cite this), 'cited' (papers this cites)
+    """
+    if not doi and not pubmed_id:
+        return {'error': 'No DOI or PubMed ID provided'}
+
+    # Build query identifier for Semantic Scholar
+    paper_id = None
+    if doi:
+        paper_id = f"DOI:{doi}"
+    elif pubmed_id:
+        paper_id = f"PMID:{pubmed_id}"
+
+    result = {
+        'paper': None,
+        'citing': [],  # Papers that cite this paper
+        'cited': [],   # Papers that this paper cites
+        'chain': []    # Citation chain visualization
+    }
+
+    try:
+        # Fetch paper details
+        paper_url = f"https://api.semanticscholar.org/graph/v1/paper/{paper_id}"
+        params = {
+            'fields': 'paperId,title,year,authors,venue,citationCount,citations.paperId,citations.title,citations.year,citations.authors,references.paperId,references.title,references.year,references.authors'
+        }
+
+        resp = requests.get(paper_url, params=params, timeout=10)
+        if resp.status_code != 200:
+            return {'error': f'Paper not found in Semantic Scholar: {resp.status_code}'}
+
+        paper_data = resp.json()
+
+        # Main paper info
+        result['paper'] = {
+            'id': paper_data.get('paperId', ''),
+            'title': paper_data.get('title', ''),
+            'year': paper_data.get('year'),
+            'authors': [a.get('name', '') for a in paper_data.get('authors', [])[:3]],
+            'venue': paper_data.get('venue', ''),
+            'citation_count': paper_data.get('citationCount', 0)
+        }
+
+        # Papers that cite this paper (incoming citations)
+        citations = paper_data.get('citations', []) or []
+        for cit in citations[:10]:  # Limit to top 10
+            if cit:
+                result['citing'].append({
+                    'id': cit.get('paperId', ''),
+                    'title': cit.get('title', ''),
+                    'year': cit.get('year'),
+                    'authors': [a.get('name', '') for a in (cit.get('authors', []) or [])[:2]]
+                })
+
+        # Papers this paper cites (outgoing references)
+        references = paper_data.get('references', []) or []
+        for ref in references[:10]:  # Limit to top 10
+            if ref:
+                result['cited'].append({
+                    'id': ref.get('paperId', ''),
+                    'title': ref.get('title', ''),
+                    'year': ref.get('year'),
+                    'authors': [a.get('name', '') for a in (ref.get('authors', []) or [])[:2]]
+                })
+
+        # Build simple chain visualization
+        # Format: [citing papers] -> [this paper] -> [cited papers]
+        chain = []
+
+        # Add citing papers (newer papers that cite this one)
+        for cit in result['citing'][:3]:
+            chain.append({
+                'title': cit['title'][:50] + '...' if len(cit.get('title', '')) > 50 else cit.get('title', ''),
+                'year': cit.get('year'),
+                'type': 'citing'
+            })
+
+        # Add the main paper
+        chain.append({
+            'title': result['paper']['title'][:50] + '...' if len(result['paper'].get('title', '')) > 50 else result['paper'].get('title', ''),
+            'year': result['paper'].get('year'),
+            'type': 'main'
+        })
+
+        # Add cited papers (older papers that this one cites)
+        for ref in result['cited'][:3]:
+            chain.append({
+                'title': ref['title'][:50] + '...' if len(ref.get('title', '')) > 50 else ref.get('title', ''),
+                'year': ref.get('year'),
+                'type': 'cited'
+            })
+
+        result['chain'] = chain
+
+    except requests.exceptions.Timeout:
+        return {'error': 'Timeout fetching citation data'}
+    except Exception as e:
+        logger.warning(f"Citation chain fetch failed: {e}")
+        return {'error': str(e)}
+
+    return result
 
 
 def group_hits_by_species(hits: List[Dict], taxonomy_data: Dict[str, Dict]) -> Dict[str, List[Dict]]:
@@ -733,13 +1016,16 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
             for h in hits
         ]
 
-        # Add taxonomy info to hits
+        # Add taxonomy, citation, and organism_type info to hits
         for hit in hits_list:
             pdb_id = hit['pdb_id'].upper()
             tax = taxonomy_data.get(pdb_id, {})
             hit['species'] = tax.get('scientific_name') or 'Unknown'
             hit['taxonomy_id'] = tax.get('taxonomy_id')
             hit['common_name'] = tax.get('common_name') or ''
+            hit['organism_type'] = tax.get('organism_type', 'unknown')
+            hit['structure_title'] = tax.get('structure_title', '')
+            hit['citation'] = tax.get('citation')
 
         jobs[job_id]["hits"] = hits_list
         jobs[job_id]["taxonomy_data"] = taxonomy_data
@@ -747,6 +1033,13 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
         # Group hits by species
         species_groups = group_hits_by_species(hits_list.copy(), taxonomy_data)
         jobs[job_id]["species_groups"] = {k: len(v) for k, v in species_groups.items()}
+
+        # Group hits by organism type (human, mammal, viral, bacteria, etc.)
+        organism_type_groups = defaultdict(int)
+        for hit in hits_list:
+            org_type = hit.get('organism_type', 'unknown')
+            organism_type_groups[org_type] += 1
+        jobs[job_id]["organism_type_groups"] = dict(organism_type_groups)
         jobs[job_id]["progress"] = 32
 
         if not hits:
@@ -925,10 +1218,42 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
             category = lig.get("category", "ligand")
             ligand_clusters[category].append(lig)
 
+        # Fetch metadata from RCSB for unique ligand IDs
+        unique_ligand_names = list(set(lig["name"] for lig in ligands_info))
+        rcsb_metadata = fetch_ligand_metadata_batch(unique_ligand_names)
+
+        def get_ligand_display_info(lig):
+            """Get display info for a ligand from Kamaji or RCSB."""
+            kamaji_info = lig.get("kamaji_info", {})
+            rcsb_info = rcsb_metadata.get(lig["name"].upper(), {})
+
+            # Prefer Kamaji MW if available, else use RCSB
+            mw = kamaji_info.get("mw", 0) if kamaji_info else 0
+            if not mw:
+                mw = rcsb_info.get("molecular_weight", 0)
+
+            # Get description from Kamaji class or RCSB name
+            description = ""
+            if kamaji_info and kamaji_info.get("class"):
+                description = kamaji_info["class"]
+            elif rcsb_info.get("description"):
+                description = rcsb_info["description"]
+
+            # Get formula from RCSB
+            formula = rcsb_info.get("formula", "")
+
+            return {
+                "name": lig["name"],
+                "source": lig["source"],
+                "category_name": lig.get("category_name", ""),
+                "kamaji_info": kamaji_info,
+                "molecular_weight": mw,
+                "formula": formula,
+                "description": description,
+            }
+
         jobs[job_id]["ligand_clusters"] = {
-            cat: [{"name": lig["name"], "source": lig["source"], "category_name": lig.get("category_name", ""),
-                   "kamaji_info": lig.get("kamaji_info", {})}
-                  for lig in ligs]
+            cat: [get_ligand_display_info(lig) for lig in ligs]
             for cat, ligs in ligand_clusters.items()
         }
         jobs[job_id]["kamaji_available"] = KAMAJI_AVAILABLE
@@ -937,6 +1262,7 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
         jobs[job_id]["ligands"] = ligands_info
         jobs[job_id]["aligned_count"] = len(aligned_seqs)
         jobs[job_id]["aligned_seqs_with_species"] = aligned_seqs_with_species
+        jobs[job_id]["aligned_pdbs"] = aligned_pdbs  # Store aligned PDB data for download
 
         jobs[job_id]["progress"] = 100
         jobs[job_id]["current_step"] = "Complete!"
@@ -1040,6 +1366,7 @@ def get_results(job_id):
         "aligned_count": job.get("aligned_count", 0),
         "query_pdb": job.get("query_pdb", ""),
         "species_groups": job.get("species_groups", {}),
+        "organism_type_groups": job.get("organism_type_groups", {}),
         "taxonomy_data": job.get("taxonomy_data", {}),
         "kamaji_available": job.get("kamaji_available", False),
     })
@@ -1048,12 +1375,13 @@ def get_results(job_id):
 @app.route('/api/conservation/<job_id>', methods=['POST'])
 def get_filtered_conservation(job_id):
     """
-    Get conservation analysis filtered by species.
+    Get conservation analysis filtered by species or selected hits.
 
     Request body:
     {
         "include_species": ["Cytomegalovirus", "HIV-1"],  // optional
         "exclude_species": ["Homo sapiens"],  // optional
+        "selected_hits": [{"pdb_id": "1ABC", "chain": "A"}, ...]  // optional - specific hits to include
     }
     """
     if job_id not in jobs:
@@ -1064,6 +1392,7 @@ def get_filtered_conservation(job_id):
 
     include_species = set(data.get('include_species', []))
     exclude_species = set(data.get('exclude_species', []))
+    selected_hits = data.get('selected_hits', [])  # List of {pdb_id, chain} dicts
 
     # Get stored aligned sequences with species info
     aligned_seqs_with_species = job.get("aligned_seqs_with_species", [])
@@ -1074,6 +1403,17 @@ def get_filtered_conservation(job_id):
             "conservation": job.get("conservation", []),
             "filtered": False
         })
+
+    # Filter by selected hits if provided
+    if selected_hits:
+        # Build set of selected hit keys
+        selected_keys = set(f"{h['pdb_id'].upper()}_{h['chain'].upper()}" for h in selected_hits)
+
+        # Filter aligned sequences to only include selected hits
+        aligned_seqs_with_species = [
+            seq_info for seq_info in aligned_seqs_with_species
+            if f"{seq_info.get('pdb_id', '').upper()}_{seq_info.get('chain', '').upper()}" in selected_keys
+        ]
 
     # Get query sequence
     query_pdb = job.get("query_pdb", "")
@@ -1097,7 +1437,8 @@ def get_filtered_conservation(job_id):
         "conservation": conservation_data,
         "filtered": True,
         "include_species": list(include_species),
-        "exclude_species": list(exclude_species)
+        "exclude_species": list(exclude_species),
+        "selected_hits_count": len(selected_hits) if selected_hits else len(aligned_seqs_with_species)
     })
 
 
@@ -1295,6 +1636,261 @@ cmd.quit()
                 output_path,
                 as_attachment=True,
                 download_name=f"{pdb_id}_pocket_miner.pse",
+                mimetype='application/octet-stream'
+            )
+
+        except subprocess.TimeoutExpired:
+            return jsonify({"error": "PyMOL session creation timed out"}), 500
+        except Exception as e:
+            logger.error(f"Failed to create PyMOL session: {e}")
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/citation_chain', methods=['GET'])
+def get_citation_chain():
+    """Get citation chain for a paper by DOI or PubMed ID."""
+    doi = request.args.get('doi', '')
+    pubmed_id = request.args.get('pubmed_id', '')
+
+    if not doi and not pubmed_id:
+        return jsonify({"error": "Please provide doi or pubmed_id parameter"}), 400
+
+    result = fetch_citation_chain(doi=doi, pubmed_id=pubmed_id)
+
+    if 'error' in result:
+        return jsonify(result), 404
+
+    return jsonify(result)
+
+
+@app.route('/api/download_selected/<job_id>', methods=['POST'])
+def download_selected(job_id):
+    """Generate and download PyMOL session file with selected structures and ligands."""
+    if job_id not in jobs:
+        return jsonify({"error": "Job not found"}), 404
+
+    job = jobs[job_id]
+
+    if job["status"] != JobStatus.COMPLETED:
+        return jsonify({"error": "Job not completed yet"}), 400
+
+    data = request.get_json() or {}
+    selected_hits = data.get('selected_hits', [])
+    selected_ligand_hits = data.get('selected_ligand_hits', [])
+
+    if not selected_hits:
+        return jsonify({"error": "No structures selected"}), 400
+
+    # Create temporary directory for PyMOL session generation
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pdb_id = job["pdb_id"]
+        chain = job.get("chain", "A")
+
+        # Get conservation data as dict
+        conservation = {c["resseq"]: c["score"] for c in job.get("conservation", [])}
+
+        # Write query structure with B-factors set to conservation scores
+        query_pdb = job.get("query_pdb", "")
+        if conservation:
+            query_pdb = set_bfactors_for_conservation(query_pdb, conservation, chain)
+
+        query_path = os.path.join(tmpdir, f"{pdb_id}_query.pdb")
+        with open(query_path, 'w') as f:
+            f.write(query_pdb)
+
+        # Get selected hits data
+        all_hits = job.get("hits", [])
+        aligned_pdbs = job.get("aligned_pdbs", [])
+        taxonomy_data = job.get("taxonomy_data", {})
+
+        # Extract PDB IDs from "pdb_chain" format
+        selected_pdb_ids = set(h.split('_')[0].lower() for h in selected_hits)
+        selected_ligand_pdb_ids = set(h.split('_')[0].lower() for h in selected_ligand_hits)
+
+        # Create lookup for aligned PDB content
+        aligned_pdb_lookup = {ap['pdb_id'].lower(): ap['pdb'] for ap in aligned_pdbs}
+
+        # Write selected aligned structures
+        hit_paths = []
+        for hit in all_hits:
+            hit_pdb_id = hit.get('pdb_id', '').lower()
+            hit_chain = hit.get('chain', '')
+            hit_id = f"{hit_pdb_id}_{hit_chain}"
+
+            if hit_pdb_id in selected_pdb_ids:
+                hit_pdb = aligned_pdb_lookup.get(hit_pdb_id, '')
+                if hit_pdb:
+                    hit_path = os.path.join(tmpdir, f"hit_{hit_id}.pdb")
+                    with open(hit_path, 'w') as f:
+                        f.write(hit_pdb)
+                    # Get taxonomy info
+                    tax_info = taxonomy_data.get(hit_pdb_id.upper(), {})
+                    species = tax_info.get('scientific_name', 'Unknown')
+                    hit_paths.append((hit_path, hit_id, hit_pdb_id, species))
+
+        # Write ligands from selected ligand hits only, grouped by taxonomy
+        ligand_paths = []
+        ligands_by_species = {}  # Group ligands by species
+        for i, lig in enumerate(job.get("ligand_pdbs", [])):
+            lig_source = lig.get('source', '').lower()
+            # Only include ligands from selected structures (match by PDB ID)
+            if lig_source in selected_ligand_pdb_ids:
+                lig_path = os.path.join(tmpdir, f"ligand_{i}_{lig['name']}_{lig_source}.pdb")
+                with open(lig_path, 'w') as f:
+                    f.write(lig.get('pdb', ''))
+
+                # Get taxonomy for this ligand's source structure
+                tax_info = taxonomy_data.get(lig_source.upper(), {})
+                species = tax_info.get('scientific_name', 'Unknown')
+                organism_type = tax_info.get('organism_type', 'unknown')
+
+                ligand_paths.append((lig_path, lig['name'], lig_source, species, organism_type))
+
+                # Group by species
+                if species not in ligands_by_species:
+                    ligands_by_species[species] = []
+                ligands_by_species[species].append((lig_path, lig['name'], lig_source))
+
+        # Create PyMOL script
+        pse_path = os.path.join(tmpdir, f"{pdb_id}_selected.pse")
+
+        script = f'''
+from pymol import cmd, util
+
+# Load query structure
+cmd.load("{query_path}", "query_{pdb_id}")
+
+# Set up conservation coloring (B-factor spectrum: blue=low, white=mid, red=high)
+cmd.show("cartoon", "query_{pdb_id}")
+cmd.spectrum("b", "blue_white_red", "query_{pdb_id} and name CA", minimum=0, maximum=100)
+
+# Color cartoon by B-factor (conservation)
+cmd.set("cartoon_color", "spectrum", "query_{pdb_id}")
+util.cbaw("query_{pdb_id}")  # Color by atom type for sticks
+cmd.spectrum("b", "blue_white_red", "query_{pdb_id}", minimum=0, maximum=100)
+
+# Create groups
+cmd.group("protein", "query_{pdb_id}")
+'''
+
+        # Add aligned structures
+        if hit_paths:
+            script += '\n# Load aligned structures\n'
+            for hit_path, hit_id, hit_pdb_id, species in hit_paths:
+                obj_name = f"hit_{hit_id}".replace('-', '_')
+                script += f'cmd.load("{hit_path}", "{obj_name}")\n'
+                script += f'cmd.show("cartoon", "{obj_name}")\n'
+                script += f'cmd.color("gray70", "{obj_name}")\n'
+
+            script += '\n# Group all aligned structures\n'
+            hit_names = [f"hit_{h[1]}".replace('-', '_') for h in hit_paths]
+            script += f'cmd.group("aligned_structures", "{" ".join(hit_names)}")\n'
+            script += 'cmd.disable("aligned_structures")  # Hidden by default\n'
+
+        # Add ligands grouped by taxonomy
+        if ligand_paths:
+            script += '\n# Load ligands (grouped by taxonomy)\n'
+
+            # First load all ligands
+            all_ligand_names = []
+            for lig_path, lig_name, lig_source, species, org_type in ligand_paths:
+                obj_name = f"lig_{lig_name}_{lig_source}".replace('-', '_')
+                all_ligand_names.append(obj_name)
+                script += f'cmd.load("{lig_path}", "{obj_name}")\n'
+                script += f'cmd.show("sticks", "{obj_name}")\n'
+                script += f'util.cbag("{obj_name}")  # Color by atom type\n'
+
+            # Group ligands by species
+            script += '\n# Group ligands by taxonomy\n'
+            species_groups = {}
+            for lig_path, lig_name, lig_source, species, org_type in ligand_paths:
+                obj_name = f"lig_{lig_name}_{lig_source}".replace('-', '_')
+                # Clean species name for PyMOL group name
+                species_clean = species.replace(' ', '_').replace('.', '').replace('-', '_')[:30] if species else 'Unknown'
+                if species_clean not in species_groups:
+                    species_groups[species_clean] = []
+                species_groups[species_clean].append(obj_name)
+
+            # Create species subgroups under ligands
+            for species_name, lig_names in species_groups.items():
+                group_name = f"lig_{species_name}"
+                script += f'cmd.group("{group_name}", "{" ".join(lig_names)}")\n'
+
+            # Create main ligands group containing all species subgroups
+            species_group_names = [f"lig_{s}" for s in species_groups.keys()]
+            script += f'cmd.group("ligands", "{" ".join(species_group_names)}")\n'
+
+        # Finalize visualization
+        script += f'''
+# Set view and style
+cmd.bg_color("white")
+cmd.set("ray_shadow", 0)
+cmd.set("depth_cue", 0)
+cmd.set("cartoon_fancy_helices", 1)
+cmd.set("cartoon_flat_sheets", 1)
+cmd.set("stick_radius", 0.15)
+cmd.set("sphere_scale", 0.2)
+
+# Create surface (hidden by default)
+cmd.create("protein_surface", "query_{pdb_id}")
+cmd.show("surface", "protein_surface")
+cmd.set("surface_color", "white", "protein_surface")
+cmd.set("transparency", 0.7, "protein_surface")
+cmd.disable("protein_surface")
+
+# Center view
+cmd.zoom("query_{pdb_id}")
+
+# Save session
+cmd.save("{pse_path}")
+cmd.quit()
+'''
+
+        script_path = os.path.join(tmpdir, "create_session.py")
+        with open(script_path, 'w') as f:
+            f.write(script)
+
+        # Run PyMOL to create session
+        pymol_paths = ["pymol", "/opt/homebrew/bin/pymol", "/usr/local/bin/pymol",
+                       "/Applications/PyMOL.app/Contents/MacOS/PyMOL"]
+
+        pymol_cmd = None
+        for path in pymol_paths:
+            try:
+                result = subprocess.run([path, "--version"], capture_output=True, timeout=5)
+                pymol_cmd = path
+                break
+            except:
+                continue
+
+        if not pymol_cmd:
+            return jsonify({"error": "PyMOL not available on server"}), 500
+
+        try:
+            result = subprocess.run(
+                [pymol_cmd, "-cq", script_path],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=tmpdir
+            )
+
+            if result.returncode != 0:
+                logger.error(f"PyMOL error: {result.stderr}")
+                return jsonify({"error": f"PyMOL failed: {result.stderr}"}), 500
+
+            if not os.path.exists(pse_path):
+                return jsonify({"error": "Failed to create PyMOL session"}), 500
+
+            # Copy to results folder for serving
+            output_path = RESULTS_FOLDER / job_id / f"{pdb_id}_selected.pse"
+            import shutil
+            shutil.copy(pse_path, output_path)
+
+            return send_file(
+                output_path,
+                as_attachment=True,
+                download_name=f"{pdb_id}_selected.pse",
                 mimetype='application/octet-stream'
             )
 

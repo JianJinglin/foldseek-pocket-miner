@@ -277,7 +277,9 @@
                         <h3 class="font-semibold">Ligand Pharmacophore</h3>
                         <p class="text-sm text-gray-500">
                             Ligands grouped by chemical category
-                            <span id="kamaji-indicator" class="hidden ml-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Kamaji</span>
+                            <span id="kamaji-indicator" class="hidden ml-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
+                                <a href="https://forlilab.org/" target="_blank" class="hover:text-green-800">Kamaji@Forli Lab</a>
+                            </span>
                         </p>
                         <div class="flex gap-2 mt-2">
                             <button onclick="expandAllCategories()" class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">Expand All</button>
@@ -293,57 +295,92 @@
             <!-- Foldseek Hits Table with Species -->
             <div class="mt-6 bg-white rounded-lg shadow">
                 <div class="p-4 border-b">
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
                         <h3 class="font-semibold">Foldseek Search Results</h3>
-                        <!-- Species Filter -->
-                        <div class="flex gap-2">
-                            <div class="species-dropdown">
-                                <button onclick="toggleSpeciesFilter()" class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-                                    </svg>
-                                    Filter by Species
-                                </button>
-                                <div id="species-filter-dropdown" class="species-dropdown-content">
-                                    <div class="p-2 border-b">
-                                        <input type="text" id="species-search" placeholder="Search species..."
-                                               class="w-full px-2 py-1 text-sm border rounded"
-                                               oninput="filterSpeciesList()">
-                                    </div>
-                                    <div id="species-checkboxes" class="p-2">
-                                        <!-- Species checkboxes will be populated here -->
-                                    </div>
-                                    <div class="p-2 border-t flex gap-2">
-                                        <button onclick="applySpeciesFilter()" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Apply</button>
-                                        <button onclick="clearSpeciesFilter()" class="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300">Clear</button>
-                                    </div>
+                        <!-- Organism Type Filter Buttons -->
+                        <div id="organism-type-filters" class="flex gap-1 flex-wrap">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+                    <!-- Second row: Species filter and other buttons -->
+                    <div class="flex justify-end gap-2 mt-2 flex-wrap">
+                        <div class="species-dropdown">
+                            <button onclick="toggleSpeciesFilter()" class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                                </svg>
+                                Filter Species
+                            </button>
+                            <div id="species-filter-dropdown" class="species-dropdown-content">
+                                <div class="p-2 border-b">
+                                    <input type="text" id="species-search" placeholder="Search species..."
+                                           class="w-full px-2 py-1 text-sm border rounded"
+                                           oninput="filterSpeciesList()">
+                                </div>
+                                <div id="species-checkboxes" class="p-2">
+                                    <!-- Species checkboxes will be populated here -->
+                                </div>
+                                <div class="p-2 border-t flex gap-2">
+                                    <button onclick="applySpeciesFilter()" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Apply</button>
+                                    <button onclick="clearSpeciesFilter()" class="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300">Clear</button>
                                 </div>
                             </div>
-                            <button onclick="excludeHuman()" id="btn-exclude-human" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200">
-                                Exclude Human
-                            </button>
-                            <button onclick="recalculateConservation()" id="btn-recalc" class="hidden px-3 py-1 text-sm bg-orange-500 text-white rounded hover:bg-orange-600 flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                                Recalculate Conservation
-                            </button>
                         </div>
+                        <button onclick="excludeHuman()" id="btn-exclude-human" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200">
+                            Exclude Human
+                        </button>
+                        <button onclick="recalculateConservation()" id="btn-recalc" class="hidden px-3 py-1 text-sm bg-orange-500 text-white rounded hover:bg-orange-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Recalculate
+                        </button>
+                        <button onclick="downloadSelectedStructures()" id="btn-download-selected" class="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Download Selected
+                        </button>
                     </div>
                     <div id="active-filters" class="mt-2 flex flex-wrap gap-1">
                         <!-- Active species filters shown here -->
                     </div>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full">
+                    <table class="w-full text-sm">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">PDB ID</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Chain</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Species</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">E-value</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Score</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Seq ID</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">PDB</th>
+                                <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Chain</th>
+                                <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Type</th>
+                                <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Species</th>
+                                <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Paper</th>
+                                <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">E-val</th>
+                                <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Seq ID</th>
+                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-500" title="Include in conservation calculation">
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span>Cons</span>
+                                        <input type="checkbox" id="select-all-cons" checked
+                                               onchange="toggleAllHitOption('cons', this.checked)"
+                                               class="w-4 h-4">
+                                    </div>
+                                </th>
+                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-500" title="Use ligand information from this structure">
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span>Lig</span>
+                                        <input type="checkbox" id="select-all-lig" checked
+                                               onchange="toggleAllHitOption('lig', this.checked)"
+                                               class="w-4 h-4">
+                                    </div>
+                                </th>
+                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-500" title="Include as structure output (PyMOL)">
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span>Out</span>
+                                        <input type="checkbox" id="select-all-out"
+                                               onchange="toggleAllHitOption('out', this.checked)"
+                                               class="w-4 h-4">
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="hits-table">
@@ -586,6 +623,10 @@
 
             // Populate hits table with species column
             populateHitsTable(data.hits);
+
+            // Populate organism type filter buttons
+            const organismTypeGroups = data.organism_type_groups || {};
+            populateOrganismTypeFilters(organismTypeGroups);
 
             // Populate species filter checkboxes
             populateSpeciesFilter(speciesGroups);
@@ -840,33 +881,381 @@
 
         // ========== NEW FUNCTIONS FOR LIGAND CATEGORIES AND SPECIES FILTERING ==========
 
-        // Populate hits table with species column
+        // Organism type colors and labels - more varied color palette
+        const organismTypeColors = {
+            'human': '#3B82F6',     // blue - for human (distinct, primary)
+            'mammal': '#10B981',    // emerald green - for mammals
+            'viral': '#EF4444',     // red - for viral (danger/warning color)
+            'bacteria': '#F59E0B',  // amber - for bacteria
+            'fungi': '#8B5CF6',     // purple - for fungi
+            'other': '#6366F1',     // indigo - for other
+            'unknown': '#9CA3AF',   // light gray - for unknown
+        };
+        const organismTypeLabels = {
+            'human': 'Human',
+            'mammal': 'Mammal',
+            'viral': 'Viral',
+            'bacteria': 'Bacteria',
+            'fungi': 'Fungi',
+            'other': 'Other',
+            'unknown': 'Unknown',
+        };
+
+        // State for hit selections
+        let hitSelections = {}; // {pdb_chain: {cons: bool, lig: bool, out: bool}}
+
+        // Populate hits table with species, organism type, and citation columns
         function populateHitsTable(hits) {
             const hitsTable = document.getElementById('hits-table');
             hitsTable.innerHTML = '';
 
-            hits.slice(0, 50).forEach(hit => {
+            hits.slice(0, 50).forEach((hit, idx) => {
+                const hitKey = `${hit.pdb_id}_${hit.chain}`;
+
+                // Initialize selection state if not exists
+                if (!hitSelections[hitKey]) {
+                    hitSelections[hitKey] = {cons: true, lig: true, out: false};
+                }
+
                 const row = document.createElement('tr');
                 row.className = 'border-t hover:bg-gray-50';
-                const speciesDisplay = hit.species || 'Unknown';
-                const speciesShort = speciesDisplay.length > 25 ?
-                    speciesDisplay.substring(0, 25) + '...' : speciesDisplay;
+                row.setAttribute('data-hit-key', hitKey);
 
+                const speciesDisplay = hit.species || 'Unknown';
+                const speciesShort = speciesDisplay.length > 20 ?
+                    speciesDisplay.substring(0, 20) + '...' : speciesDisplay;
+
+                // Organism type badge
+                const orgType = hit.organism_type || 'unknown';
+                const orgColor = organismTypeColors[orgType] || '#9CA3AF';
+                const orgLabel = organismTypeLabels[orgType] || orgType;
+
+                // Citation link with chain button
+                let citationHtml = '-';
+                if (hit.citation) {
+                    const citation = hit.citation;
+                    const doi = citation.doi || '';
+                    const pubmedId = citation.pubmed_id || '';
+
+                    if (citation.doi_url) {
+                        citationHtml = `
+                            <div class="flex items-center gap-1">
+                                <a href="${citation.doi_url}" target="_blank"
+                                    class="text-blue-600 hover:underline text-xs"
+                                    title="${citation.title || ''} (${citation.year || ''})">
+                                    DOI</a>
+                                <button onclick="showCitationChain('${doi}', '${pubmedId}', '${hit.pdb_id}')"
+                                    class="text-gray-400 hover:text-purple-600" title="View citation chain">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                    </svg>
+                                </button>
+                            </div>`;
+                    } else if (citation.pubmed_url) {
+                        citationHtml = `
+                            <div class="flex items-center gap-1">
+                                <a href="${citation.pubmed_url}" target="_blank"
+                                    class="text-blue-600 hover:underline text-xs"
+                                    title="${citation.title || ''} (${citation.year || ''})">
+                                    PubMed</a>
+                                <button onclick="showCitationChain('${doi}', '${pubmedId}', '${hit.pdb_id}')"
+                                    class="text-gray-400 hover:text-purple-600" title="View citation chain">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                    </svg>
+                                </button>
+                            </div>`;
+                    }
+                }
+
+                const sel = hitSelections[hitKey];
                 row.innerHTML = `
-                    <td class="px-4 py-2">
+                    <td class="px-3 py-2">
                         <a href="https://www.rcsb.org/structure/${hit.pdb_id}"
-                           target="_blank" class="text-blue-600 hover:underline">${hit.pdb_id}</a>
+                           target="_blank" class="text-blue-600 hover:underline font-medium">${hit.pdb_id}</a>
                     </td>
-                    <td class="px-4 py-2">${hit.chain}</td>
-                    <td class="px-4 py-2">
-                        <span class="text-sm" title="${speciesDisplay}">${speciesShort}</span>
+                    <td class="px-2 py-2">${hit.chain}</td>
+                    <td class="px-2 py-2">
+                        <span class="inline-block px-1.5 py-0.5 rounded text-xs text-white"
+                              style="background-color: ${orgColor}">${orgLabel}</span>
                     </td>
-                    <td class="px-4 py-2">${hit.evalue.toExponential(2)}</td>
-                    <td class="px-4 py-2">${hit.score.toFixed(1)}</td>
-                    <td class="px-4 py-2">${(hit.seq_identity * 100).toFixed(1)}%</td>
+                    <td class="px-2 py-2">
+                        <span class="text-xs" title="${speciesDisplay}">${speciesShort}</span>
+                    </td>
+                    <td class="px-2 py-2 text-center">${citationHtml}</td>
+                    <td class="px-2 py-2 text-xs">${hit.evalue.toExponential(1)}</td>
+                    <td class="px-2 py-2">${(hit.seq_identity * 100).toFixed(0)}%</td>
+                    <td class="px-2 py-2 text-center">
+                        <input type="checkbox" class="hit-cons-cb w-4 h-4" data-hit-key="${hitKey}"
+                               ${sel.cons ? 'checked' : ''}
+                               onchange="updateHitSelection('${hitKey}', 'cons', this.checked)">
+                    </td>
+                    <td class="px-2 py-2 text-center">
+                        <input type="checkbox" class="hit-lig-cb w-4 h-4" data-hit-key="${hitKey}"
+                               ${sel.lig ? 'checked' : ''}
+                               onchange="updateHitSelection('${hitKey}', 'lig', this.checked)">
+                    </td>
+                    <td class="px-2 py-2 text-center">
+                        <input type="checkbox" class="hit-out-cb w-4 h-4" data-hit-key="${hitKey}"
+                               ${sel.out ? 'checked' : ''}
+                               onchange="updateHitSelection('${hitKey}', 'out', this.checked)">
+                    </td>
                 `;
                 hitsTable.appendChild(row);
             });
+
+            // Update header checkbox states
+            updateHeaderCheckboxStates();
+        }
+
+        // Update hit selection state
+        function updateHitSelection(hitKey, optionType, checked) {
+            if (!hitSelections[hitKey]) {
+                hitSelections[hitKey] = {cons: true, lig: true, out: false};
+            }
+            hitSelections[hitKey][optionType] = checked;
+            updateHeaderCheckboxStates();
+
+            // Show recalculate button when conservation selection changes
+            if (optionType === 'cons') {
+                document.getElementById('btn-recalc').classList.remove('hidden');
+                document.getElementById('btn-recalc').classList.add('flex');
+            }
+        }
+
+        // Toggle all checkboxes of a type
+        function toggleAllHitOption(optionType, checked) {
+            const checkboxes = document.querySelectorAll(`.hit-${optionType}-cb`);
+            checkboxes.forEach(cb => {
+                cb.checked = checked;
+                const hitKey = cb.getAttribute('data-hit-key');
+                if (hitSelections[hitKey]) {
+                    hitSelections[hitKey][optionType] = checked;
+                }
+            });
+
+            // Show recalculate button when conservation selection changes
+            if (optionType === 'cons') {
+                document.getElementById('btn-recalc').classList.remove('hidden');
+                document.getElementById('btn-recalc').classList.add('flex');
+            }
+        }
+
+        // Update header checkbox states based on row checkboxes
+        function updateHeaderCheckboxStates() {
+            ['cons', 'lig', 'out'].forEach(optionType => {
+                const checkboxes = document.querySelectorAll(`.hit-${optionType}-cb`);
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+
+                const headerCb = document.getElementById(`select-all-${optionType}`);
+                if (headerCb) {
+                    headerCb.checked = allChecked;
+                    headerCb.indeterminate = !allChecked && someChecked;
+                }
+            });
+        }
+
+        // Get selected hits for conservation calculation
+        function getSelectedHitsForConservation() {
+            return Object.entries(hitSelections)
+                .filter(([key, sel]) => sel.cons)
+                .map(([key, sel]) => {
+                    const [pdbId, chain] = key.split('_');
+                    return {pdb_id: pdbId, chain: chain};
+                });
+        }
+
+        // Get selected hits for ligand extraction
+        function getSelectedHitsForLigands() {
+            // Return array of "pdb_chain" strings for the backend
+            return Object.entries(hitSelections)
+                .filter(([key, sel]) => sel.lig)
+                .map(([key, sel]) => key);  // key is already "pdb_chain" format
+        }
+
+        // Get selected hits for structure output
+        function getSelectedHitsForOutput() {
+            // Return array of "pdb_chain" strings for the backend
+            return Object.entries(hitSelections)
+                .filter(([key, sel]) => sel.out)
+                .map(([key, sel]) => key);  // key is already "pdb_chain" format
+        }
+
+        // Download selected structures with ligands as PyMOL session
+        async function downloadSelectedStructures() {
+            if (!currentJobId) {
+                showError('No results available to download');
+                return;
+            }
+
+            // Get selected structures (from "Out" column)
+            const selectedHits = getSelectedHitsForOutput();
+            const selectedLigandHits = getSelectedHitsForLigands();
+
+            if (selectedHits.length === 0) {
+                showError('Please select at least one structure using the "Out" checkboxes');
+                return;
+            }
+
+            const btn = document.getElementById('btn-download-selected');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `
+                <svg class="w-4 h-4 spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating...
+            `;
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/download_selected/${currentJobId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        selected_hits: selectedHits,
+                        selected_ligand_hits: selectedLigandHits
+                    })
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to generate PyMOL session');
+                }
+
+                // Download the file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${document.getElementById('pdb-id').value}_selected_structures.pse`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Populate organism type filter buttons
+        function populateOrganismTypeFilters(organismTypeGroups) {
+            const container = document.getElementById('organism-type-filters');
+            container.innerHTML = '';
+
+            // Order of organism types to display
+            const typeOrder = ['viral', 'human', 'mammal', 'bacteria', 'fungi', 'other', 'unknown'];
+
+            typeOrder.forEach(orgType => {
+                const count = organismTypeGroups[orgType];
+                if (!count) return;
+
+                const color = organismTypeColors[orgType] || '#9CA3AF';
+                const label = organismTypeLabels[orgType] || orgType;
+
+                const btn = document.createElement('button');
+                btn.className = 'org-type-btn px-2 py-1 text-xs rounded border-2 transition-all';
+                btn.setAttribute('data-org-type', orgType);
+                btn.style.borderColor = color;
+                btn.style.color = color;
+                btn.innerHTML = `${label} <span class="font-bold">(${count})</span>`;
+
+                btn.onclick = () => toggleOrganismTypeFilter(orgType, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        // Toggle organism type filter
+        let activeOrgTypes = new Set();
+        function toggleOrganismTypeFilter(orgType, btn) {
+            if (activeOrgTypes.has(orgType)) {
+                activeOrgTypes.delete(orgType);
+                btn.style.backgroundColor = 'transparent';
+                btn.style.color = organismTypeColors[orgType];
+            } else {
+                activeOrgTypes.add(orgType);
+                btn.style.backgroundColor = organismTypeColors[orgType];
+                btn.style.color = 'white';
+            }
+
+            // Filter hits table
+            filterHitsByOrganismType();
+
+            // Show recalculate button
+            const recalcBtn = document.getElementById('btn-recalc');
+            if (activeOrgTypes.size > 0) {
+                recalcBtn.classList.remove('hidden');
+                recalcBtn.classList.add('flex');
+            }
+        }
+
+        // Filter hits table by organism type
+        function filterHitsByOrganismType() {
+            const rows = document.querySelectorAll('#hits-table tr');
+            const filteredHits = allHits.filter(hit => {
+                if (activeOrgTypes.size === 0) return true;
+                return activeOrgTypes.has(hit.organism_type);
+            });
+
+            // Re-populate the table with filtered hits
+            populateHitsTable(filteredHits);
+
+            // Update active filters display
+            updateActiveFiltersDisplay();
+        }
+
+        // Update active filters display to show org type filters
+        function updateActiveFiltersDisplay() {
+            const container = document.getElementById('active-filters');
+            container.innerHTML = '';
+
+            // Add organism type filters
+            activeOrgTypes.forEach(orgType => {
+                const tag = document.createElement('span');
+                tag.className = 'px-2 py-1 text-xs rounded text-white flex items-center gap-1';
+                tag.style.backgroundColor = organismTypeColors[orgType];
+                tag.innerHTML = `
+                    ${organismTypeLabels[orgType]}
+                    <button onclick="removeOrgTypeFilter('${orgType}')" class="ml-1 hover:text-gray-200">&times;</button>
+                `;
+                container.appendChild(tag);
+            });
+
+            // Add excluded species
+            excludedSpecies.forEach(species => {
+                const tag = document.createElement('span');
+                tag.className = 'px-2 py-1 bg-red-100 text-red-700 text-xs rounded flex items-center gap-1';
+                tag.innerHTML = `
+                    Exclude: ${species.length > 15 ? species.substring(0, 15) + '...' : species}
+                    <button onclick="removeExcludedSpecies('${species}')" class="ml-1 hover:text-red-900">&times;</button>
+                `;
+                container.appendChild(tag);
+            });
+        }
+
+        // Remove org type filter
+        function removeOrgTypeFilter(orgType) {
+            activeOrgTypes.delete(orgType);
+            // Update button style
+            const btn = document.querySelector(`[data-org-type="${orgType}"]`);
+            if (btn) {
+                btn.style.backgroundColor = 'transparent';
+                btn.style.color = organismTypeColors[orgType];
+            }
+            filterHitsByOrganismType();
+        }
+
+        // Remove excluded species
+        function removeExcludedSpecies(species) {
+            excludedSpecies.delete(species);
+            filterHitsByOrganismType();
         }
 
         // Populate species filter dropdown
@@ -1008,7 +1397,7 @@
             populateHitsTable(filteredHits);
         }
 
-        // Recalculate conservation with species filter
+        // Recalculate conservation with species filter and hit selections
         async function recalculateConservation() {
             if (!currentJobId) return;
 
@@ -1017,13 +1406,17 @@
             btn.innerHTML = 'Calculating...';
             btn.disabled = true;
 
+            // Get selected hits for conservation
+            const selectedHits = getSelectedHitsForConservation();
+
             try {
                 const response = await fetch(`/api/conservation/${currentJobId}`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         include_species: Array.from(selectedSpecies),
-                        exclude_species: Array.from(excludedSpecies)
+                        exclude_species: Array.from(excludedSpecies),
+                        selected_hits: selectedHits  // Add selected hits
                     })
                 });
 
@@ -1110,6 +1503,9 @@
                     const globalIdx = ligandMap.get(`${lig.name}_${lig.source}`);
                     const color = ligandColors[globalIdx % ligandColors.length];
 
+                    // Simple source info only
+                    const detailsHtml = `<div class="text-xs text-gray-500">From: ${lig.source.toUpperCase()}</div>`;
+
                     const item = document.createElement('div');
                     item.className = 'ligand-item p-2 pl-8 border-t cursor-pointer flex items-center';
                     item.setAttribute('data-category', categoryKey);
@@ -1117,14 +1513,23 @@
                         <input type="checkbox" class="ligand-checkbox mr-2" checked
                                data-ligand-idx="${globalIdx}"
                                onchange="toggleLigandVisibility(${globalIdx}, this.checked)">
-                        <div class="w-3 h-3 rounded mr-2" style="background-color: ${color}"></div>
-                        <div class="flex-1">
-                            <div class="font-medium text-sm">${lig.name}</div>
-                            <div class="text-xs text-gray-500">From: ${lig.source}</div>
+                        <div class="w-3 h-3 rounded mr-2 flex-shrink-0" style="background-color: ${color}"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium text-sm flex items-center gap-1">
+                                <span>${lig.name}</span>
+                                <a href="https://www.rcsb.org/ligand/${lig.name}" target="_blank"
+                                   class="text-blue-500 hover:text-blue-700" title="View on RCSB">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                    </svg>
+                                </a>
+                            </div>
+                            ${detailsHtml}
                         </div>
                     `;
                     item.onclick = (e) => {
-                        if (e.target.type !== 'checkbox') {
+                        if (e.target.type !== 'checkbox' && !e.target.closest('a')) {
                             highlightLigand(globalIdx);
                         }
                     };
@@ -1198,6 +1603,156 @@
         document.addEventListener('DOMContentLoaded', () => {
             initViewer();
         });
+
+        // Citation Chain Modal Functions
+        async function showCitationChain(doi, pubmedId, pdbId) {
+            const modal = document.getElementById('citation-modal');
+            const content = document.getElementById('citation-chain-content');
+            const title = document.getElementById('citation-modal-title');
+
+            title.textContent = `Citation Chain - ${pdbId}`;
+            content.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div><p class="mt-2 text-gray-500">Loading citation data...</p></div>';
+            modal.classList.remove('hidden');
+
+            try {
+                let url = '/api/citation_chain?';
+                if (doi) url += `doi=${encodeURIComponent(doi)}`;
+                else if (pubmedId) url += `pubmed_id=${encodeURIComponent(pubmedId)}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.error) {
+                    content.innerHTML = `<div class="text-center py-8 text-red-500">${data.error}</div>`;
+                    return;
+                }
+
+                // Build citation chain visualization
+                let html = '';
+
+                // Main paper info
+                if (data.paper) {
+                    html += `
+                        <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <div class="font-semibold text-blue-800">${data.paper.title || 'Unknown Title'}</div>
+                            <div class="text-sm text-gray-600 mt-1">
+                                ${data.paper.authors?.join(', ') || 'Unknown Authors'} (${data.paper.year || 'N/A'})
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">${data.paper.venue || ''}</div>
+                            <div class="text-xs text-blue-600 mt-2">Cited by ${data.paper.citation_count || 0} papers</div>
+                        </div>
+                    `;
+                }
+
+                // Citation chain visualization
+                if (data.chain && data.chain.length > 0) {
+                    html += '<div class="mb-6"><h4 class="font-semibold text-gray-700 mb-3">Citation Chain</h4>';
+                    html += '<div class="flex flex-col items-center gap-2">';
+
+                    data.chain.forEach((item, idx) => {
+                        const bgColor = item.type === 'main' ? 'bg-blue-100 border-blue-400' :
+                                        item.type === 'citing' ? 'bg-green-50 border-green-300' :
+                                        'bg-orange-50 border-orange-300';
+                        const arrow = item.type === 'citing' ? '↓ cites' :
+                                     item.type === 'cited' ? '↓ cited by' : '';
+
+                        if (idx > 0 && item.type !== 'main') {
+                            html += `<div class="text-gray-400 text-xs">${arrow}</div>`;
+                        } else if (idx > 0 && item.type === 'main' && data.chain[idx-1]?.type === 'citing') {
+                            html += '<div class="text-gray-400 text-xs">↓ cites</div>';
+                        }
+
+                        html += `
+                            <div class="w-full max-w-md p-3 rounded border ${bgColor} text-sm">
+                                <div class="font-medium">${item.title || 'Unknown'}</div>
+                                <div class="text-xs text-gray-500">(${item.year || 'N/A'})</div>
+                            </div>
+                        `;
+
+                        if (item.type === 'main' && data.chain[idx+1]?.type === 'cited') {
+                            html += '<div class="text-gray-400 text-xs">↓ references</div>';
+                        }
+                    });
+
+                    html += '</div></div>';
+                }
+
+                // Citing papers (papers that cite this one)
+                if (data.citing && data.citing.length > 0) {
+                    html += `
+                        <div class="mb-6">
+                            <h4 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-green-400"></span>
+                                Papers Citing This Work (${data.citing.length})
+                            </h4>
+                            <div class="space-y-2 max-h-48 overflow-y-auto">
+                    `;
+                    data.citing.forEach(paper => {
+                        html += `
+                            <div class="p-2 bg-green-50 rounded text-sm border-l-2 border-green-400">
+                                <div class="font-medium text-gray-800">${paper.title || 'Unknown'}</div>
+                                <div class="text-xs text-gray-500">${paper.authors?.join(', ') || ''} (${paper.year || 'N/A'})</div>
+                            </div>
+                        `;
+                    });
+                    html += '</div></div>';
+                }
+
+                // Cited papers (papers this one cites)
+                if (data.cited && data.cited.length > 0) {
+                    html += `
+                        <div class="mb-4">
+                            <h4 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-orange-400"></span>
+                                References (${data.cited.length})
+                            </h4>
+                            <div class="space-y-2 max-h-48 overflow-y-auto">
+                    `;
+                    data.cited.forEach(paper => {
+                        html += `
+                            <div class="p-2 bg-orange-50 rounded text-sm border-l-2 border-orange-400">
+                                <div class="font-medium text-gray-800">${paper.title || 'Unknown'}</div>
+                                <div class="text-xs text-gray-500">${paper.authors?.join(', ') || ''} (${paper.year || 'N/A'})</div>
+                            </div>
+                        `;
+                    });
+                    html += '</div></div>';
+                }
+
+                if (!data.citing?.length && !data.cited?.length) {
+                    html += '<div class="text-center text-gray-500 py-4">No citation data available</div>';
+                }
+
+                content.innerHTML = html;
+
+            } catch (error) {
+                content.innerHTML = `<div class="text-center py-8 text-red-500">Failed to load citation data: ${error.message}</div>`;
+            }
+        }
+
+        function closeCitationModal() {
+            document.getElementById('citation-modal').classList.add('hidden');
+        }
     </script>
+
+    <!-- Citation Chain Modal -->
+    <div id="citation-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-black opacity-50" onclick="closeCitationModal()"></div>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+                    <h3 id="citation-modal-title" class="text-lg font-semibold text-gray-900">Citation Chain</h3>
+                    <button onclick="closeCitationModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="citation-chain-content" class="p-6">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

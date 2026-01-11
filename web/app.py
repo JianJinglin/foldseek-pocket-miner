@@ -1735,9 +1735,19 @@ def download_selected(job_id):
                 else:
                     logger.warning(f"Structure file not found for {hit_id}")
 
-        # Write ligands from selected ligand hits only, grouped by taxonomy
+        # Write ligands from selected ligand hits only, grouped by Kamaji category
         ligand_paths = []
-        ligands_by_species = {}  # Group ligands by species
+
+        # Create lookup for ligand category info
+        ligands_info = job.get("ligands", [])
+        ligand_category_lookup = {}
+        for lig_info in ligands_info:
+            key = f"{lig_info.get('name', '')}_{lig_info.get('source', '')}"
+            ligand_category_lookup[key] = {
+                'category': lig_info.get('category', 'ligand'),
+                'category_name': lig_info.get('category_name', 'Small Molecules')
+            }
+
         for i, lig in enumerate(job.get("ligand_pdbs", [])):
             lig_source = lig.get('source', '').lower()
             # Only include ligands from selected structures (match by PDB ID)
@@ -1746,17 +1756,13 @@ def download_selected(job_id):
                 with open(lig_path, 'w') as f:
                     f.write(lig.get('pdb', ''))
 
-                # Get taxonomy for this ligand's source structure
-                tax_info = taxonomy_data.get(lig_source.upper(), {})
-                species = tax_info.get('scientific_name', 'Unknown')
-                organism_type = tax_info.get('organism_type', 'unknown')
+                # Get Kamaji category for this ligand
+                lig_key = f"{lig['name']}_{lig.get('source', '')}"
+                cat_info = ligand_category_lookup.get(lig_key, {})
+                category = cat_info.get('category', 'ligand')
+                category_name = cat_info.get('category_name', 'Small Molecules')
 
-                ligand_paths.append((lig_path, lig['name'], lig_source, species, organism_type))
-
-                # Group by species
-                if species not in ligands_by_species:
-                    ligands_by_species[species] = []
-                ligands_by_species[species].append((lig_path, lig['name'], lig_source))
+                ligand_paths.append((lig_path, lig['name'], lig_source, category, category_name))
 
         # Create PyMOL script
         pse_path = os.path.join(tmpdir, f"{pdb_id}_selected.pse")
@@ -1810,34 +1816,34 @@ cmd.group("protein", "query_{pdb_id}")
             script += f'cmd.group("aligned_structures", "{" ".join(org_group_names)}")\n'
             script += 'cmd.disable("aligned_structures")  # Hidden by default\n'
 
-        # Add ligands grouped by organism type
+        # Add ligands grouped by Kamaji category
         if ligand_paths:
             script += '\n# Load ligands\n'
 
-            # Group ligands by organism type
-            ligands_by_org = {}
-            for lig_path, lig_name, lig_source, species, org_type in ligand_paths:
+            # Group ligands by Kamaji category
+            ligands_by_category = {}
+            for lig_path, lig_name, lig_source, category, category_name in ligand_paths:
                 obj_name = f"lig_{lig_name}_{lig_source}".replace('-', '_')
                 script += f'cmd.load("{lig_path}", "{obj_name}")\n'
                 script += f'cmd.show("sticks", "{obj_name}")\n'
                 script += f'util.cbag("{obj_name}")  # Color by atom type\n'
 
-                # Group by organism type
-                org_key = org_type if org_type else 'unknown'
-                if org_key not in ligands_by_org:
-                    ligands_by_org[org_key] = []
-                ligands_by_org[org_key].append(obj_name)
+                # Group by Kamaji category
+                cat_key = category if category else 'ligand'
+                if cat_key not in ligands_by_category:
+                    ligands_by_category[cat_key] = []
+                ligands_by_category[cat_key].append(obj_name)
 
-            # Create organism type subgroups for ligands
-            script += '\n# Group ligands by organism type\n'
-            lig_org_group_names = []
-            for org_type, lig_names in ligands_by_org.items():
-                group_name = f"lig_{org_type}"
-                lig_org_group_names.append(group_name)
+            # Create Kamaji category subgroups for ligands
+            script += '\n# Group ligands by Kamaji category\n'
+            lig_cat_group_names = []
+            for category, lig_names in ligands_by_category.items():
+                group_name = f"lig_{category}"
+                lig_cat_group_names.append(group_name)
                 script += f'cmd.group("{group_name}", "{" ".join(lig_names)}")\n'
 
             # Create main ligands group
-            script += f'cmd.group("ligands", "{" ".join(lig_org_group_names)}")\n'
+            script += f'cmd.group("ligands", "{" ".join(lig_cat_group_names)}")\n'
 
         # Finalize visualization
         script += f'''

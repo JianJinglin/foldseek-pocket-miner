@@ -1522,13 +1522,31 @@ def download_pse(job_id):
         with open(query_path, 'w') as f:
             f.write(query_pdb)
 
-        # Write ligands
+        # Write ligands with Kamaji category info
         ligand_paths = []
+
+        # Create lookup for ligand category info
+        ligands_info = job.get("ligands", [])
+        ligand_category_lookup = {}
+        for lig_info in ligands_info:
+            key = f"{lig_info.get('name', '')}_{lig_info.get('source', '')}"
+            ligand_category_lookup[key] = {
+                'category': lig_info.get('category', 'ligand'),
+                'category_name': lig_info.get('category_name', 'Small Molecules')
+            }
+
         for i, lig in enumerate(job.get("ligand_pdbs", [])):
             lig_path = os.path.join(tmpdir, f"ligand_{i}_{lig['name']}_{lig['source']}.pdb")
             with open(lig_path, 'w') as f:
                 f.write(lig.get('pdb', ''))
-            ligand_paths.append((lig_path, lig['name'], lig['source']))
+
+            # Get Kamaji category for this ligand
+            lig_key = f"{lig['name']}_{lig.get('source', '')}"
+            cat_info = ligand_category_lookup.get(lig_key, {})
+            category = cat_info.get('category', 'ligand')
+            category_name = cat_info.get('category_name', 'Small Molecules')
+
+            ligand_paths.append((lig_path, lig['name'], lig['source'], category, category_name))
 
         # Create PyMOL script
         pse_path = os.path.join(tmpdir, f"{pdb_id}_pocket_miner.pse")
@@ -1552,18 +1570,34 @@ cmd.spectrum("b", "blue_white_red", "query_{pdb_id}", minimum=0, maximum=100)
 cmd.group("protein", "query_{pdb_id}")
 '''
 
-        # Add ligands
+        # Add ligands grouped by Kamaji category
         if ligand_paths:
             script += '\n# Load ligands\n'
-            for lig_path, lig_name, lig_source in ligand_paths:
+
+            # Group ligands by Kamaji category
+            ligands_by_category = {}
+            for lig_path, lig_name, lig_source, category, category_name in ligand_paths:
                 obj_name = f"lig_{lig_name}_{lig_source}".replace('-', '_')
                 script += f'cmd.load("{lig_path}", "{obj_name}")\n'
                 script += f'cmd.show("sticks", "{obj_name}")\n'
                 script += f'util.cbag("{obj_name}")  # Color by atom type\n'
 
-            script += '\n# Group all ligands\n'
-            ligand_names = [f"lig_{l[1]}_{l[2]}".replace('-', '_') for l in ligand_paths]
-            script += f'cmd.group("ligands", "{" ".join(ligand_names)}")\n'
+                # Group by Kamaji category
+                cat_key = category if category else 'ligand'
+                if cat_key not in ligands_by_category:
+                    ligands_by_category[cat_key] = []
+                ligands_by_category[cat_key].append(obj_name)
+
+            # Create Kamaji category subgroups for ligands
+            script += '\n# Group ligands by Kamaji category\n'
+            lig_cat_group_names = []
+            for category, lig_names in ligands_by_category.items():
+                group_name = f"lig_{category}"
+                lig_cat_group_names.append(group_name)
+                script += f'cmd.group("{group_name}", "{" ".join(lig_names)}")\n'
+
+            # Create main ligands group
+            script += f'cmd.group("ligands", "{" ".join(lig_cat_group_names)}")\n'
 
         # Finalize visualization
         script += f'''
@@ -1576,11 +1610,11 @@ cmd.set("cartoon_flat_sheets", 1)
 cmd.set("stick_radius", 0.15)
 cmd.set("sphere_scale", 0.2)
 
-# Create surface (hidden by default)
+# Create surface colored by conservation (blue=low, white=mid, red=high)
 cmd.create("protein_surface", "query_{pdb_id}")
 cmd.show("surface", "protein_surface")
-cmd.set("surface_color", "white", "protein_surface")
-cmd.set("transparency", 0.7, "protein_surface")
+cmd.spectrum("b", "blue_white_red", "protein_surface", minimum=0, maximum=100)
+cmd.set("transparency", 0.4, "protein_surface")
 cmd.disable("protein_surface")
 
 # Center view
@@ -1856,11 +1890,11 @@ cmd.set("cartoon_flat_sheets", 1)
 cmd.set("stick_radius", 0.15)
 cmd.set("sphere_scale", 0.2)
 
-# Create surface (hidden by default)
+# Create surface colored by conservation (blue=low, white=mid, red=high)
 cmd.create("protein_surface", "query_{pdb_id}")
 cmd.show("surface", "protein_surface")
-cmd.set("surface_color", "white", "protein_surface")
-cmd.set("transparency", 0.7, "protein_surface")
+cmd.spectrum("b", "blue_white_red", "protein_surface", minimum=0, maximum=100)
+cmd.set("transparency", 0.4, "protein_surface")
 cmd.disable("protein_surface")
 
 # Center view

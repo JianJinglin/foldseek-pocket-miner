@@ -355,12 +355,11 @@
                                 <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Type</th>
                                 <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Species</th>
                                 <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Paper</th>
-                                <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">E-val</th>
                                 <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Seq ID</th>
                                 <th class="px-2 py-2 text-center text-xs font-medium text-gray-500" title="Include in conservation calculation">
                                     <div class="flex flex-col items-center gap-1">
                                         <span>Cons</span>
-                                        <input type="checkbox" id="select-all-cons" checked
+                                        <input type="checkbox" id="select-all-cons"
                                                onchange="toggleAllHitOption('cons', this.checked)"
                                                class="w-4 h-4">
                                     </div>
@@ -368,7 +367,7 @@
                                 <th class="px-2 py-2 text-center text-xs font-medium text-gray-500" title="Use ligand information from this structure">
                                     <div class="flex flex-col items-center gap-1">
                                         <span>Lig</span>
-                                        <input type="checkbox" id="select-all-lig" checked
+                                        <input type="checkbox" id="select-all-lig"
                                                onchange="toggleAllHitOption('lig', this.checked)"
                                                class="w-4 h-4">
                                     </div>
@@ -914,7 +913,7 @@
 
                 // Initialize selection state if not exists
                 if (!hitSelections[hitKey]) {
-                    hitSelections[hitKey] = {cons: true, lig: true, out: false};
+                    hitSelections[hitKey] = {cons: false, lig: false, out: false};
                 }
 
                 const row = document.createElement('tr');
@@ -985,7 +984,6 @@
                         <span class="text-xs" title="${speciesDisplay}">${speciesShort}</span>
                     </td>
                     <td class="px-2 py-2 text-center">${citationHtml}</td>
-                    <td class="px-2 py-2 text-xs">${hit.evalue.toExponential(1)}</td>
                     <td class="px-2 py-2">${(hit.seq_identity * 100).toFixed(0)}%</td>
                     <td class="px-2 py-2 text-center">
                         <input type="checkbox" class="hit-cons-cb w-4 h-4" data-hit-key="${hitKey}"
@@ -1013,7 +1011,7 @@
         // Update hit selection state
         function updateHitSelection(hitKey, optionType, checked) {
             if (!hitSelections[hitKey]) {
-                hitSelections[hitKey] = {cons: true, lig: true, out: false};
+                hitSelections[hitKey] = {cons: false, lig: false, out: false};
             }
             hitSelections[hitKey][optionType] = checked;
             updateHeaderCheckboxStates();

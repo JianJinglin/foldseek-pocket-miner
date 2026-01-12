@@ -873,8 +873,15 @@ def calculate_conservation(query_seq: Dict[int, str], aligned_seqs: List[Dict[in
     return conservation
 
 
-def extract_ligands_from_pdb(pdb_content: str, source_name: str = "") -> List[Dict]:
-    """Extract ligand atoms from PDB content."""
+def extract_ligands_from_pdb(pdb_content: str, source_name: str = "", target_chain: str = None) -> List[Dict]:
+    """
+    Extract ligand atoms from PDB content.
+
+    Args:
+        pdb_content: PDB file content
+        source_name: Name/ID of the source structure
+        target_chain: If specified, only extract ligands from this chain
+    """
     ligands = {}
 
     for line in pdb_content.split('\n'):
@@ -884,6 +891,11 @@ def extract_ligands_from_pdb(pdb_content: str, source_name: str = "") -> List[Di
                 continue
 
             chain = line[21:22].strip()
+
+            # Filter by chain if specified
+            if target_chain and chain != target_chain:
+                continue
+
             resseq = int(line[22:26].strip())
             key = (resname, chain, resseq)
 
@@ -1114,8 +1126,8 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
                         'pdb_id': source_pdb_id
                     })
 
-                # Extract ligands
-                ligands = extract_ligands_from_pdb(aligned_pdb, source_pdb_id)
+                # Extract ligands - only from the matched chain to avoid ligands from other chains
+                ligands = extract_ligands_from_pdb(aligned_pdb, source_pdb_id, target_chain)
 
                 # Run Kamaji classification on this structure
                 kamaji_categories = {}

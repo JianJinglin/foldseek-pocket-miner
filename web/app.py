@@ -923,10 +923,16 @@ def extract_ligands_from_pdb(pdb_content: str, source_name: str = "", target_cha
     return result
 
 
-def align_structure_pymol(query_pdb: str, target_pdb: str, pymol_path: str = "pymol") -> Tuple[str, float]:
+def align_structure_pymol(query_pdb: str, target_pdb: str, pymol_path: str = "pymol", target_chain: str = None) -> Tuple[str, float]:
     """
     Align target structure to query using PyMOL.
     Returns aligned PDB content and RMSD.
+
+    Args:
+        query_pdb: Query PDB content
+        target_pdb: Target PDB content
+        pymol_path: Path to PyMOL executable
+        target_chain: If specified, only align and save this chain from target
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         query_path = os.path.join(tmpdir, "query.pdb")
@@ -938,12 +944,17 @@ def align_structure_pymol(query_pdb: str, target_pdb: str, pymol_path: str = "py
         with open(target_path, 'w') as f:
             f.write(target_pdb)
 
+        # Build selection string for target chain
+        target_sel = f"target and chain {target_chain}" if target_chain else "target"
+
         script = f'''
 from pymol import cmd
 cmd.load("{query_path}", "query")
 cmd.load("{target_path}", "target")
-result = cmd.align("target", "query")
-cmd.save("{aligned_path}", "target")
+# Align only the specified chain (or whole structure if no chain specified)
+result = cmd.align("{target_sel}", "query")
+# Save only the aligned chain
+cmd.save("{aligned_path}", "{target_sel}")
 print(f"RMSD: {{result[0]}}")
 cmd.quit()
 '''
@@ -1104,17 +1115,17 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
                 with open(path, 'r') as f:
                     target_pdb = f.read()
 
-                # Align if PyMOL available
+                # Extract PDB ID and chain from key (format: PDBID_CHAIN, e.g., 5CNN_A)
+                source_pdb_id = key.split('_')[0]
+                target_chain = key.split('_')[1] if '_' in key else None
+
+                # Align if PyMOL available - only align the specific chain
                 if pymol_available:
-                    aligned_pdb, rmsd = align_structure_pymol(query_pdb, target_pdb)
+                    aligned_pdb, rmsd = align_structure_pymol(query_pdb, target_pdb, target_chain=target_chain)
                 else:
                     aligned_pdb = target_pdb  # Use unaligned
 
-                # Extract PDB ID from key
-                source_pdb_id = key.split('_')[0]
-
                 # Extract sequence for conservation
-                target_chain = key.split('_')[1] if '_' in key else None
                 seq = extract_sequence_from_pdb(aligned_pdb, target_chain)
                 if seq:
                     aligned_seqs.append(seq)
@@ -1127,7 +1138,9 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
                     })
 
                 # Extract ligands - only from the matched chain to avoid ligands from other chains
+                logger.info(f"Extracting ligands from {source_pdb_id}, chain={target_chain}, key={key}")
                 ligands = extract_ligands_from_pdb(aligned_pdb, source_pdb_id, target_chain)
+                logger.info(f"Found {len(ligands)} ligands from chain {target_chain}")
 
                 # Run Kamaji classification on this structure
                 kamaji_categories = {}

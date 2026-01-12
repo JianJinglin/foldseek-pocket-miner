@@ -252,7 +252,9 @@
                             <button onclick="toggleConservation()" id="btn-conservation" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200">Conservation ON</button>
                             <button onclick="toggleLigands()" id="btn-ligands" class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200">Ligands ON</button>
                             <button onclick="toggleSurface()" id="btn-surface" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Surface OFF</button>
+                            <!-- H-Bonds button hidden - feature needs improvement
                             <button onclick="toggleHBonds()" id="btn-hbonds" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">H-Bonds OFF</button>
+                            -->
                             <button onclick="resetView()" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Reset View</button>
                             <button onclick="downloadPSE()" id="btn-download-pse" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,7 +407,7 @@
         <div class="max-w-7xl mx-auto px-4 py-4 text-center text-sm text-gray-500">
             <p>Powered by <a href="https://github.com/steineggerlab/foldseek" class="text-blue-600 hover:underline">Foldseek</a> |
                Visualization with <a href="https://3dmol.org" class="text-blue-600 hover:underline">3Dmol.js</a></p>
-            <p class="mt-1">Made by Jinglin Jian @ Scripps Research</p>
+            <p class="mt-1">Made by Jinglin Jian, Matt Holcomb, and Stefano Forli @ <a href="https://forlilab.org/" class="text-blue-600 hover:underline">Forli Lab</a> at <a href="https://www.scripps.edu/" class="text-blue-600 hover:underline">Scripps Research</a></p>
         </div>
     </footer>
 
@@ -698,18 +700,37 @@
                 }
             }
 
-            // Load ligands with different colors
-            const colors = [
-                0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4, 0xFFEAA7,
-                0xDDA0DD, 0x98D8C8, 0xF7DC6F, 0xBB8FCE, 0x85C1E9
+            // Load ligands with PyMOL-style element coloring
+            // Carbon colors for different ligands to distinguish them
+            const carbonColors = [
+                0x33FF33, 0x00FFFF, 0xFFFF00, 0xFF8C00, 0xFF69B4,
+                0x9370DB, 0x20B2AA, 0xFFD700, 0x87CEEB, 0x98FB98
             ];
 
             (data.ligand_pdbs || []).forEach((lig, idx) => {
                 if (lig.pdb) {
                     const model = viewer.addModel(lig.pdb, 'pdb');
                     ligandModels.push(model);
+                    // Use element coloring with different carbon colors per ligand
+                    const carbonColor = carbonColors[idx % carbonColors.length];
                     viewer.setStyle({model: model}, {
-                        stick: {radius: 0.2, color: colors[idx % colors.length]}
+                        stick: {
+                            radius: 0.2,
+                            colorscheme: {
+                                prop: 'elem',
+                                map: {
+                                    'C': carbonColor,
+                                    'N': 0x3333FF,  // Blue
+                                    'O': 0xFF3333,  // Red
+                                    'S': 0xFFFF00,  // Yellow
+                                    'P': 0xFF7F00,  // Orange
+                                    'F': 0x90EE90,  // Light green
+                                    'Cl': 0x00FF00, // Green
+                                    'Br': 0xA52A2A, // Brown
+                                    'I': 0x940094   // Purple
+                                }
+                            }
+                        }
                     });
                 }
             });
@@ -777,14 +798,34 @@
             showLigands = !showLigands;
             const btn = document.getElementById('btn-ligands');
 
-            const colors = [
-                0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4, 0xFFEAA7,
-                0xDDA0DD, 0x98D8C8, 0xF7DC6F, 0xBB8FCE, 0x85C1E9
+            // Carbon colors for different ligands (same as in loadStructure)
+            const carbonColors = [
+                0x33FF33, 0x00FFFF, 0xFFFF00, 0xFF8C00, 0xFF69B4,
+                0x9370DB, 0x20B2AA, 0xFFD700, 0x87CEEB, 0x98FB98
             ];
 
             ligandModels.forEach((model, idx) => {
                 if (showLigands) {
-                    viewer.setStyle({model: model}, {stick: {radius: 0.2, color: colors[idx % colors.length]}});
+                    const carbonColor = carbonColors[idx % carbonColors.length];
+                    viewer.setStyle({model: model}, {
+                        stick: {
+                            radius: 0.2,
+                            colorscheme: {
+                                prop: 'elem',
+                                map: {
+                                    'C': carbonColor,
+                                    'N': 0x3333FF,
+                                    'O': 0xFF3333,
+                                    'S': 0xFFFF00,
+                                    'P': 0xFF7F00,
+                                    'F': 0x90EE90,
+                                    'Cl': 0x00FF00,
+                                    'Br': 0xA52A2A,
+                                    'I': 0x940094
+                                }
+                            }
+                        }
+                    });
                 } else {
                     viewer.setStyle({model: model}, {});
                 }
@@ -1571,11 +1612,15 @@
                 ligandMap.set(`${lig.name}_${lig.source}`, idx);
             });
 
+            // Categories that should not show color indicator
+            const noColorCategories = ['ligand', 'small_molecule', 'nucleotide'];
+
             Object.entries(clusters).forEach(([categoryKey, ligands]) => {
                 if (ligands.length === 0) return;
 
                 const categoryName = categoryNames[categoryKey] || categoryKey;
                 const categoryColor = categoryColors[categoryKey] || '#888888';
+                const showColorIndicator = !noColorCategories.includes(categoryKey);
 
                 const categoryDiv = document.createElement('div');
                 categoryDiv.className = 'mb-2 border rounded';
@@ -1590,7 +1635,7 @@
                         </svg>
                         <input type="checkbox" class="category-checkbox" checked
                                onchange="toggleCategoryVisibility('${categoryKey}', this.checked)">
-                        <div class="w-3 h-3 rounded" style="background-color: ${categoryColor}"></div>
+                        ${showColorIndicator ? `<div class="w-3 h-3 rounded" style="background-color: ${categoryColor}"></div>` : ''}
                         <span class="font-medium text-sm">${categoryName}</span>
                     </div>
                     <span class="text-xs text-gray-500">${ligands.length} ligand${ligands.length > 1 ? 's' : ''}</span>
@@ -1682,13 +1727,30 @@
         // Toggle individual ligand visibility
         function toggleLigandVisibility(idx, visible) {
             if (idx < ligandModels.length) {
-                const colors = [
-                    0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4, 0xFFEAA7,
-                    0xDDA0DD, 0x98D8C8, 0xF7DC6F, 0xBB8FCE, 0x85C1E9
+                const carbonColors = [
+                    0x33FF33, 0x00FFFF, 0xFFFF00, 0xFF8C00, 0xFF69B4,
+                    0x9370DB, 0x20B2AA, 0xFFD700, 0x87CEEB, 0x98FB98
                 ];
                 if (visible) {
+                    const carbonColor = carbonColors[idx % carbonColors.length];
                     viewer.setStyle({model: ligandModels[idx]}, {
-                        stick: {radius: 0.2, color: colors[idx % colors.length]}
+                        stick: {
+                            radius: 0.2,
+                            colorscheme: {
+                                prop: 'elem',
+                                map: {
+                                    'C': carbonColor,
+                                    'N': 0x3333FF,
+                                    'O': 0xFF3333,
+                                    'S': 0xFFFF00,
+                                    'P': 0xFF7F00,
+                                    'F': 0x90EE90,
+                                    'Cl': 0x00FF00,
+                                    'Br': 0xA52A2A,
+                                    'I': 0x940094
+                                }
+                            }
+                        }
                     });
                 } else {
                     viewer.setStyle({model: ligandModels[idx]}, {});

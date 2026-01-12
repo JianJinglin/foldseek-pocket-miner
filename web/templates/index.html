@@ -692,11 +692,12 @@
             if (data.query_pdb) {
                 proteinModel = viewer.addModel(data.query_pdb, 'pdb');
 
-                // Apply conservation coloring
+                // Apply conservation coloring (blue-white-red scale)
                 if (showConservation && conservationData.length > 0) {
                     applyConservationColoring();
                 } else {
-                    viewer.setStyle({model: proteinModel}, {cartoon: {color: 'spectrum'}});
+                    // Default to light gray if no conservation data
+                    viewer.setStyle({model: proteinModel}, {cartoon: {color: 0xCCCCCC}});
                 }
             }
 
@@ -787,7 +788,8 @@
                 btn.textContent = 'Conservation OFF';
                 btn.className = 'px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200';
                 if (proteinModel) {
-                    viewer.setStyle({model: proteinModel}, {cartoon: {color: 'spectrum'}});
+                    // Light gray when conservation is off
+                    viewer.setStyle({model: proteinModel}, {cartoon: {color: 0xCCCCCC}});
                 }
             }
             viewer.render();

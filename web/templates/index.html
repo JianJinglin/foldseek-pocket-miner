@@ -252,6 +252,7 @@
                             <button onclick="toggleConservation()" id="btn-conservation" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200">Conservation ON</button>
                             <button onclick="toggleLigands()" id="btn-ligands" class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200">Ligands ON</button>
                             <button onclick="toggleSurface()" id="btn-surface" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Surface OFF</button>
+                            <button onclick="toggleHBonds()" id="btn-hbonds" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">H-Bonds OFF</button>
                             <button onclick="resetView()" class="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">Reset View</button>
                             <button onclick="downloadPSE()" id="btn-download-pse" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -419,6 +420,26 @@
         let showConservation = true;
         let showLigands = true;
         let showSurface = false;
+        let showHBonds = false;
+        let hbondShapes = [];  // Store H-bond cylinder shapes
+
+        // Amino acid color scheme (similar to PyMOL "amino" coloring)
+        const AA_COLORS = {
+            // Hydrophobic - yellow/orange
+            'ALA': '#C8C800', 'VAL': '#C8C800', 'ILE': '#C8C800', 'LEU': '#C8C800',
+            'MET': '#E0E000', 'PHE': '#DAA520', 'TRP': '#B8860B', 'PRO': '#DC9682',
+            // Polar - green/cyan
+            'SER': '#32CD32', 'THR': '#32CD32', 'ASN': '#00FA9A', 'GLN': '#00FA9A',
+            'TYR': '#00CED1',
+            // Acidic (negative) - red
+            'ASP': '#E60A0A', 'GLU': '#E60A0A',
+            // Basic (positive) - blue
+            'LYS': '#145AFF', 'ARG': '#145AFF', 'HIS': '#8282D2',
+            // Special
+            'CYS': '#E0E000', 'GLY': '#EBEBEB',
+            // Default
+            'default': '#BEA06E'
+        };
 
         // New state for ligand categories and species filtering
         let ligandClusters = {};
@@ -780,7 +801,7 @@
             viewer.render();
         }
 
-        // Toggle surface - colored by conservation (blue=low, white=mid, red=high)
+        // Toggle surface - colored by amino acid type
         function toggleSurface() {
             showSurface = !showSurface;
             const btn = document.getElementById('btn-surface');
@@ -791,24 +812,9 @@
                 viewer.addSurface($3Dmol.SurfaceType.VDW, {
                     opacity: 0.7,
                     colorfunc: function(atom) {
-                        // Conservation score in B-factor (0-100)
-                        // Blue (low conservation) -> White (mid) -> Red (high conservation)
-                        var score = (atom.b !== undefined) ? atom.b / 100 : 0.5;
-                        var r, g, b;
-                        if (score < 0.5) {
-                            // Blue to White
-                            var t = score * 2;
-                            r = Math.floor(t * 255);
-                            g = Math.floor(t * 255);
-                            b = 255;
-                        } else {
-                            // White to Red
-                            var t = (score - 0.5) * 2;
-                            r = 255;
-                            g = Math.floor((1 - t) * 255);
-                            b = Math.floor((1 - t) * 255);
-                        }
-                        return 'rgb(' + r + ',' + g + ',' + b + ')';
+                        // Color by amino acid type
+                        var resn = atom.resn ? atom.resn.toUpperCase() : 'default';
+                        return AA_COLORS[resn] || AA_COLORS['default'];
                     }
                 }, {model: proteinModel});
             } else {
@@ -817,6 +823,90 @@
                 viewer.removeAllSurfaces();
             }
             viewer.render();
+        }
+
+        // Toggle hydrogen bonds between protein and ligands
+        function toggleHBonds() {
+            showHBonds = !showHBonds;
+            const btn = document.getElementById('btn-hbonds');
+
+            if (showHBonds) {
+                btn.textContent = 'H-Bonds ON';
+                btn.className = 'px-3 py-1 text-sm bg-cyan-100 text-cyan-700 rounded hover:bg-cyan-200';
+                calculateAndShowHBonds();
+            } else {
+                btn.textContent = 'H-Bonds OFF';
+                btn.className = 'px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200';
+                // Remove H-bond shapes
+                hbondShapes.forEach(shape => viewer.removeShape(shape));
+                hbondShapes = [];
+            }
+            viewer.render();
+        }
+
+        // Calculate and display hydrogen bonds
+        function calculateAndShowHBonds() {
+            if (!proteinModel || ligandModels.length === 0) return;
+
+            // H-bond donors and acceptors
+            const DONORS = ['N', 'O'];  // Atoms that can donate H
+            const ACCEPTORS = ['O', 'N', 'S'];  // Atoms that can accept H
+            const MAX_DIST = 3.5;  // Max H-bond distance in Angstroms
+            const MIN_DIST = 2.2;  // Min distance to avoid clashes
+
+            // Get protein atoms
+            const proteinAtoms = viewer.getModel(proteinModel).selectedAtoms({});
+
+            // Get all ligand atoms
+            let ligandAtoms = [];
+            ligandModels.forEach(model => {
+                const atoms = viewer.getModel(model).selectedAtoms({});
+                ligandAtoms = ligandAtoms.concat(atoms);
+            });
+
+            // Find potential H-bonds
+            proteinAtoms.forEach(pAtom => {
+                if (!pAtom.elem) return;
+                const pElem = pAtom.elem.toUpperCase();
+
+                // Check if protein atom can be donor or acceptor
+                const pIsDonor = DONORS.includes(pElem);
+                const pIsAcceptor = ACCEPTORS.includes(pElem);
+                if (!pIsDonor && !pIsAcceptor) return;
+
+                ligandAtoms.forEach(lAtom => {
+                    if (!lAtom.elem) return;
+                    const lElem = lAtom.elem.toUpperCase();
+
+                    // Check if ligand atom can form H-bond with protein atom
+                    const lIsDonor = DONORS.includes(lElem);
+                    const lIsAcceptor = ACCEPTORS.includes(lElem);
+
+                    if ((pIsDonor && lIsAcceptor) || (pIsAcceptor && lIsDonor)) {
+                        // Calculate distance
+                        const dx = pAtom.x - lAtom.x;
+                        const dy = pAtom.y - lAtom.y;
+                        const dz = pAtom.z - lAtom.z;
+                        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+                        if (dist >= MIN_DIST && dist <= MAX_DIST) {
+                            // Draw H-bond as dashed cylinder
+                            const shape = viewer.addCylinder({
+                                start: {x: pAtom.x, y: pAtom.y, z: pAtom.z},
+                                end: {x: lAtom.x, y: lAtom.y, z: lAtom.z},
+                                radius: 0.05,
+                                color: 'cyan',
+                                dashed: true,
+                                dashLength: 0.2,
+                                gapLength: 0.1
+                            });
+                            hbondShapes.push(shape);
+                        }
+                    }
+                });
+            });
+
+            console.log(`Found ${hbondShapes.length} potential H-bonds`);
         }
 
         // Reset view

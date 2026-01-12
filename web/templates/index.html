@@ -361,6 +361,7 @@
                                 <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Species</th>
                                 <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Paper</th>
                                 <th class="px-2 py-2 text-left text-xs font-medium text-gray-500">Seq ID</th>
+                                <!-- Cons and Lig columns hidden
                                 <th class="px-2 py-2 text-center text-xs font-medium text-gray-500" title="Include in conservation calculation">
                                     <div class="flex flex-col items-center gap-1">
                                         <span>Cons</span>
@@ -377,6 +378,7 @@
                                                class="w-4 h-4">
                                     </div>
                                 </th>
+                                -->
                                 <th class="px-2 py-2 text-center text-xs font-medium text-gray-500" title="Include as structure output (PyMOL)">
                                     <div class="flex flex-col items-center gap-1">
                                         <span>Out</span>
@@ -667,15 +669,17 @@
                 kamajiIndicator.classList.add('hidden');
             }
 
-            // Display conservation details
+            // Display conservation details (if element exists)
             const consDetails = document.getElementById('conservation-details');
-            const highConsRes = conservationData.filter(r => r.score > 0.8);
-            if (highConsRes.length > 0) {
-                consDetails.innerHTML = highConsRes.map(r =>
-                    `<span class="inline-block px-2 py-1 m-1 bg-red-100 text-red-800 rounded text-sm">${r.aa}${r.resseq} (${(r.score * 100).toFixed(0)}%)</span>`
-                ).join('');
-            } else {
-                consDetails.innerHTML = '<p class="text-gray-500">No highly conserved residues found</p>';
+            if (consDetails) {
+                const highConsRes = conservationData.filter(r => r.score > 0.8);
+                if (highConsRes.length > 0) {
+                    consDetails.innerHTML = highConsRes.map(r =>
+                        `<span class="inline-block px-2 py-1 m-1 bg-red-100 text-red-800 rounded text-sm">${r.aa}${r.resseq} (${(r.score * 100).toFixed(0)}%)</span>`
+                    ).join('');
+                } else {
+                    consDetails.innerHTML = '<p class="text-gray-500">No highly conserved residues found</p>';
+                }
             }
 
             // Initialize viewer with structures
@@ -1140,12 +1144,13 @@
                     </td>
                     <td class="px-2 py-2 text-center">${citationHtml}</td>
                     <td class="px-2 py-2">${(hit.seq_identity * 100).toFixed(0)}%</td>
-                    <td class="px-2 py-2 text-center">
+                    <!-- Cons and Lig columns hidden -->
+                    <td class="px-2 py-2 text-center" hidden>
                         <input type="checkbox" class="hit-cons-cb w-4 h-4" data-hit-key="${hitKey}"
                                ${sel.cons ? 'checked' : ''}
                                onchange="updateHitSelection('${hitKey}', 'cons', this.checked)">
                     </td>
-                    <td class="px-2 py-2 text-center">
+                    <td class="px-2 py-2 text-center" hidden>
                         <input type="checkbox" class="hit-lig-cb w-4 h-4" data-hit-key="${hitKey}"
                                ${sel.lig ? 'checked' : ''}
                                onchange="updateHitSelection('${hitKey}', 'lig', this.checked)">
@@ -1582,15 +1587,17 @@
                     const highlyConserved = conservationData.filter(r => r.score > 0.8).length;
                     document.getElementById('stat-conserved').textContent = highlyConserved;
 
-                    // Update conservation details
+                    // Update conservation details (if element exists)
                     const consDetails = document.getElementById('conservation-details');
-                    const highConsRes = conservationData.filter(r => r.score > 0.8);
-                    if (highConsRes.length > 0) {
-                        consDetails.innerHTML = highConsRes.map(r =>
-                            `<span class="inline-block px-2 py-1 m-1 bg-red-100 text-red-800 rounded text-sm">${r.aa}${r.resseq} (${(r.score * 100).toFixed(0)}%)</span>`
-                        ).join('');
-                    } else {
-                        consDetails.innerHTML = '<p class="text-gray-500">No highly conserved residues found</p>';
+                    if (consDetails) {
+                        const highConsRes = conservationData.filter(r => r.score > 0.8);
+                        if (highConsRes.length > 0) {
+                            consDetails.innerHTML = highConsRes.map(r =>
+                                `<span class="inline-block px-2 py-1 m-1 bg-red-100 text-red-800 rounded text-sm">${r.aa}${r.resseq} (${(r.score * 100).toFixed(0)}%)</span>`
+                            ).join('');
+                        } else {
+                            consDetails.innerHTML = '<p class="text-gray-500">No highly conserved residues found</p>';
+                        }
                     }
 
                     // Update visualization

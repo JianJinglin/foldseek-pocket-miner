@@ -1774,17 +1774,51 @@ def download_selected(job_id):
         # Extract PDB IDs from "pdb_chain" format for ligand matching
         selected_ligand_pdb_ids = set(h.split('_')[0].lower() for h in selected_ligand_hits)
 
+        # Check if PyMOL is available for on-the-fly alignment
+        pymol_available = False
+        pymol_cmd = None
+        for path in ["pymol", "/opt/homebrew/bin/pymol", "/usr/local/bin/pymol"]:
+            try:
+                subprocess.run([path, "--version"], capture_output=True, timeout=5)
+                pymol_cmd = path
+                pymol_available = True
+                break
+            except:
+                continue
+
         # Write selected aligned structures - use pre-aligned PDBs from job data
         hit_paths = []
+        selected_hits_lower = [h.lower() for h in selected_hits]
+
         for hit in all_hits:
             hit_pdb_id = hit.get('pdb_id', '').lower()
             hit_chain = hit.get('chain', '')
             hit_key = f"{hit_pdb_id}_{hit_chain}".lower()
 
             # Check if this specific pdb_chain combination is selected
-            if hit_key in [h.lower() for h in selected_hits]:
+            if hit_key in selected_hits_lower:
                 # Use pre-aligned structure from job data
                 hit_pdb = aligned_pdb_lookup.get(hit_key)
+
+                # If not found in pre-aligned data, try to align on-the-fly
+                if not hit_pdb and pymol_available:
+                    logger.info(f"Aligning {hit_key} on-the-fly...")
+                    try:
+                        # Download structure
+                        from src.foldseek_pocket_miner.structure_downloader import StructureDownloader
+                        downloader = StructureDownloader()
+                        downloaded = downloader.download_batch([hit_pdb_id.upper()], [hit_chain], show_progress=False)
+                        dl_key = f"{hit_pdb_id.upper()}_{hit_chain}"
+                        dl_path = downloaded.get(dl_key)
+
+                        if dl_path and os.path.exists(dl_path):
+                            with open(dl_path, 'r') as f:
+                                target_pdb = f.read()
+                            # Align to query
+                            hit_pdb, rmsd = align_structure_pymol(query_pdb, target_pdb, pymol_cmd, hit_chain)
+                            logger.info(f"Aligned {hit_key} with RMSD={rmsd:.2f}")
+                    except Exception as e:
+                        logger.warning(f"Failed to align {hit_key} on-the-fly: {e}")
 
                 if hit_pdb:
                     hit_path = os.path.join(tmpdir, f"hit_{hit_key}.pdb")

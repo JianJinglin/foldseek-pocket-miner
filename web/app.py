@@ -1184,6 +1184,8 @@ def run_pipeline(job_id: str, pdb_id: str = None, chain: str = "A",
 
                 aligned_pdbs.append({
                     'pdb_id': source_pdb_id,
+                    'chain': target_chain,
+                    'key': key,  # e.g., "5CNN_A"
                     'pdb': aligned_pdb
                 })
 
@@ -1760,39 +1762,41 @@ def download_selected(job_id):
         # Get selected hits data
         all_hits = job.get("hits", [])
         taxonomy_data = job.get("taxonomy_data", {})
+        aligned_pdbs = job.get("aligned_pdbs", [])  # Get pre-aligned structures
 
-        # Extract PDB IDs from "pdb_chain" format
-        selected_pdb_ids = set(h.split('_')[0].lower() for h in selected_hits)
+        # Create lookup for aligned PDBs by key (pdb_id_chain, e.g., "5CNN_A")
+        aligned_pdb_lookup = {}
+        for apdb in aligned_pdbs:
+            # Use key if available, otherwise construct from pdb_id and chain
+            key = apdb.get('key', f"{apdb['pdb_id']}_{apdb.get('chain', '')}").lower()
+            aligned_pdb_lookup[key] = apdb['pdb']
+
+        # Extract PDB IDs from "pdb_chain" format for ligand matching
         selected_ligand_pdb_ids = set(h.split('_')[0].lower() for h in selected_ligand_hits)
 
-        # Path to downloaded structures
-        structures_dir = RESULTS_FOLDER / job_id / "structures"
-
-        # Write selected aligned structures - read directly from downloaded files
+        # Write selected aligned structures - use pre-aligned PDBs from job data
         hit_paths = []
         for hit in all_hits:
             hit_pdb_id = hit.get('pdb_id', '').lower()
             hit_chain = hit.get('chain', '')
-            hit_id = f"{hit_pdb_id}_{hit_chain}"
+            hit_key = f"{hit_pdb_id}_{hit_chain}".lower()
 
-            if hit_pdb_id in selected_pdb_ids:
-                # Try to find the structure file
-                structure_file = structures_dir / f"{hit_pdb_id}_{hit_chain}.pdb"
-                if not structure_file.exists():
-                    structure_file = structures_dir / f"{hit_pdb_id.upper()}_{hit_chain}.pdb"
+            # Check if this specific pdb_chain combination is selected
+            if hit_key in [h.lower() for h in selected_hits]:
+                # Use pre-aligned structure from job data
+                hit_pdb = aligned_pdb_lookup.get(hit_key)
 
-                if structure_file.exists():
-                    hit_pdb = structure_file.read_text()
-                    hit_path = os.path.join(tmpdir, f"hit_{hit_id}.pdb")
+                if hit_pdb:
+                    hit_path = os.path.join(tmpdir, f"hit_{hit_key}.pdb")
                     with open(hit_path, 'w') as f:
                         f.write(hit_pdb)
                     # Get taxonomy info
                     tax_info = taxonomy_data.get(hit_pdb_id.upper(), {})
                     species = tax_info.get('scientific_name', 'Unknown')
                     organism_type = tax_info.get('organism_type', 'unknown')
-                    hit_paths.append((hit_path, hit_id, hit_pdb_id, species, organism_type))
+                    hit_paths.append((hit_path, hit_key, hit_pdb_id, species, organism_type))
                 else:
-                    logger.warning(f"Structure file not found for {hit_id}")
+                    logger.warning(f"Aligned structure not found for {hit_key}")
 
         # Write ligands from selected ligand hits only, grouped by Kamaji category
         ligand_paths = []

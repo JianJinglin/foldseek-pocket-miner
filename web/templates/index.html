@@ -780,7 +780,7 @@
             viewer.render();
         }
 
-        // Toggle surface
+        // Toggle surface - colored by conservation (blue=low, white=mid, red=high)
         function toggleSurface() {
             showSurface = !showSurface;
             const btn = document.getElementById('btn-surface');
@@ -789,8 +789,27 @@
                 btn.textContent = 'Surface ON';
                 btn.className = 'px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200';
                 viewer.addSurface($3Dmol.SurfaceType.VDW, {
-                    opacity: 0.6,
-                    color: 'white'
+                    opacity: 0.7,
+                    colorfunc: function(atom) {
+                        // Conservation score in B-factor (0-100)
+                        // Blue (low conservation) -> White (mid) -> Red (high conservation)
+                        var score = (atom.b !== undefined) ? atom.b / 100 : 0.5;
+                        var r, g, b;
+                        if (score < 0.5) {
+                            // Blue to White
+                            var t = score * 2;
+                            r = Math.floor(t * 255);
+                            g = Math.floor(t * 255);
+                            b = 255;
+                        } else {
+                            // White to Red
+                            var t = (score - 0.5) * 2;
+                            r = 255;
+                            g = Math.floor((1 - t) * 255);
+                            b = Math.floor((1 - t) * 255);
+                        }
+                        return 'rgb(' + r + ',' + g + ',' + b + ')';
+                    }
                 }, {model: proteinModel});
             } else {
                 btn.textContent = 'Surface OFF';
